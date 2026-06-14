@@ -335,6 +335,11 @@ mkdir -p /volume1/Software/{Drivers,Tools,Licenses,ISOs}
         <span class="alert-icon">⚠️</span>
         <div><strong>注意：</strong>NFS 仅对 <code>GoldenImages</code> 开放，<code>LabData</code> 使用 SMB 即可。不要对所有文件夹都开 NFS。</div>
     </div>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>使用边界：</strong>NFS 主要用于 <strong>Clonezilla Live / Linux 客户端</strong> 做镜像备份与恢复，不是给日常 Windows 工作站挂载使用。12 台 Windows 工作站平时应通过 <strong>SMB</strong> 访问 <code>LabData</code> 和 <code>Software</code>。</div>
+    </div>
 </div>
 
 <!-- Step 4: Install Packages -->
@@ -544,7 +549,7 @@ sudo docker run -d \
         <tr>
             <td>3</td>
             <td>NFS 可挂载</td>
-            <td>Clonezilla Live USB 启动 → 挂载 NFS</td>
+            <td>Clonezilla Live USB 启动或任意 Linux 客户端 → 挂载 NFS</td>
             <td><code>mount 192.168.0.81:/volume1/GoldenImages /mnt</code> 成功</td>
         </tr>
         <tr>
@@ -614,6 +619,11 @@ echo ""
 echo "=== NFS 导出 ==="
 cat /etc/exports
     </div>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>NFS 挂载测试位置说明：</strong><code>mount 192.168.0.81:/volume1/GoldenImages /mnt</code> 这条命令应在 <strong>Clonezilla Live / Linux 客户端</strong> 上执行，而不是在 NAS 自己的 SSH 终端中执行。NAS 侧用 <code>sudo cat /etc/exports</code> 和 <code>sudo exportfs -v</code> 确认导出已生效即可。</div>
+    </div>
 </div>
 
 <!-- Next Steps -->
@@ -629,6 +639,21 @@ cat /etc/exports
         <tr><td>5</td><td>每台安装 Reboot Restore → 设基线</td><td>所有软件配置完毕</td></tr>
         <tr><td>6</td><td>Uptime Kuma 添加 12 台 Monitor</td><td>工作站已分配固定 IP</td></tr>
     </table>
+
+    <h3>Windows 工作站当前应该做什么</h3>
+    <p>如果你的 12 台设备当前主要是 Windows 工作站，下一步重点不是给它们挂 NFS，而是先把 <strong>SMB、RustDesk、软件仓库、Golden Image</strong> 这条主线跑通。</p>
+    <ol>
+        <li><strong>选 1 台工作站作为标准机</strong>：先完成 Windows、驱动、常用软件、RustDesk、网络盘映射配置</li>
+        <li><strong>访问 NAS SMB 共享</strong>：<code>\\192.168.0.81</code>，验证 <code>LabData</code> 可读写、<code>Software</code> 只读、<code>docker</code> 不可访问</li>
+        <li><strong>映射网络盘</strong>：例如在 Windows 中执行 <code>net use Z: \\192.168.0.81\LabData</code></li>
+        <li><strong>配置 RustDesk 客户端</strong>：填写 <code>ID Server = 192.168.0.81</code>、<code>Relay Server = 192.168.0.81</code>、<code>Key = RustDesk 公钥</code></li>
+        <li><strong>从 Software 安装驱动和工具</strong>：AMD 驱动、VS Code、Python、Git、7-Zip、RustDesk 等</li>
+        <li><strong>完成标准机后再做镜像</strong>：使用 Sysprep + Clonezilla 将标准机备份到 <code>GoldenImages</code>，再批量恢复到其余 11 台</li>
+    </ol>
+    <div class="alert alert-info">
+        <span class="alert-icon">🎯</span>
+        <div><strong>建议顺序：</strong>不要一开始就逐台手工配置 12 台 Windows 机器。先完成 1 台标准机，再镜像复制，整体效率最高，也最符合这套 Lab 部署方案。</div>
+    </div>
 
     <div class="alert alert-success">
         <span class="alert-icon">🎯</span>
