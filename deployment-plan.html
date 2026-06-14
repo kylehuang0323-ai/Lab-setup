@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I-Lab 裸金属工作站部署方案 v2.0</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-light: #CFE4FA;
+            --success: #107C10;
+            --success-light: #DFF6DD;
+            --warning: #F7630C;
+            --warning-light: #FFF4CE;
+            --danger: #D13438;
+            --danger-light: #FDE7E9;
+            --purple: #5C2D91;
+            --purple-light: #E8DAEF;
+            --neutral: #1e1e1e;
+            --neutral-light: #F3F2F1;
+            --bg: #fafafa;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            background: var(--bg);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), #005a9e);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,120,212,0.3);
+        }
+        .header h1 { font-size: 2em; margin-bottom: 8px; }
+        .header .subtitle { opacity: 0.9; font-size: 1.1em; }
+        .header .meta { margin-top: 15px; font-size: 0.9em; opacity: 0.8; }
+        
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--primary);
+        }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 16px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h3 {
+            color: #444;
+            margin: 20px 0 10px;
+            font-size: 1.1em;
+        }
+        
+        /* Architecture Diagram */
+        .arch-diagram {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.85em;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+        
+        /* Layer Cards */
+        .layer-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 20px 0;
+        }
+        .layer {
+            padding: 16px 20px;
+            border: 2px solid;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .layer:first-child { border-radius: 10px 10px 0 0; }
+        .layer:last-child { border-radius: 0 0 10px 10px; }
+        .layer-num {
+            font-weight: 700;
+            font-size: 1.2em;
+            min-width: 30px;
+        }
+        .layer-title { font-weight: 600; min-width: 140px; }
+        .layer-desc { color: #555; font-size: 0.9em; }
+        .layer-tool { 
+            margin-left: auto; 
+            background: rgba(0,0,0,0.05); 
+            padding: 3px 10px; 
+            border-radius: 4px; 
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+        
+        .layer-4 { border-color: var(--purple); background: var(--purple-light); }
+        .layer-3 { border-color: var(--success); background: var(--success-light); }
+        .layer-2 { border-color: var(--warning); background: var(--warning-light); }
+        .layer-1 { border-color: var(--primary); background: var(--primary-light); }
+        .layer-0 { border-color: #495057; background: var(--neutral-light); }
+        
+        /* Comparison Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover { background: #f5f5f5; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .badge-recommend { background: var(--success-light); color: var(--success); }
+        .badge-ok { background: var(--primary-light); color: var(--primary); }
+        .badge-no { background: var(--danger-light); color: var(--danger); }
+        
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin: 20px 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+        .timeline-day {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        .timeline-title { font-weight: 600; margin-bottom: 8px; }
+        .timeline-tasks {
+            list-style: none;
+            padding: 0;
+        }
+        .timeline-tasks li {
+            padding: 3px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .timeline-tasks li::before {
+            content: '☐';
+            position: absolute;
+            left: 0;
+        }
+        .timeline-output {
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: var(--success-light);
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--success);
+        }
+        
+        /* Info Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .card {
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            background: white;
+        }
+        .card h4 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .card ul li {
+            padding: 4px 0;
+            padding-left: 18px;
+            position: relative;
+            font-size: 0.9em;
+        }
+        .card ul li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+        
+        /* Alert Box */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .alert-warning {
+            background: var(--warning-light);
+            border: 1px solid var(--warning);
+        }
+        .alert-info {
+            background: var(--primary-light);
+            border: 1px solid var(--primary);
+        }
+        .alert-success {
+            background: var(--success-light);
+            border: 1px solid var(--success);
+        }
+        .alert-icon { font-size: 1.3em; }
+        
+        /* NAS Section */
+        .nas-role {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .nas-item {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+        .nas-item strong { display: block; margin-bottom: 4px; }
+        .nas-item span { font-size: 0.85em; color: #666; }
+        
+        /* Blind Spots */
+        .blind-spot {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: var(--warning-light);
+            border-radius: 6px;
+            border-left: 3px solid var(--warning);
+        }
+        .blind-spot-num {
+            font-weight: 700;
+            color: var(--warning);
+            min-width: 24px;
+        }
+        
+        /* Commands */
+        .cmd-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .cmd-comment { color: #6a9955; }
+        .cmd-highlight { color: #569cd6; }
+        
+        /* Decision Box */
+        .decision {
+            background: var(--purple-light);
+            border: 2px solid var(--purple);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .decision h3 { color: var(--purple); margin-bottom: 10px; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85em;
+        }
+        
+        /* Print */
+        @media print {
+            body { padding: 0; }
+            .section { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+    <h1>🖥️ I-Lab 裸金属工作站部署方案 v2.0</h1>
+    <div class="subtitle">12× GMK EVO-X2 工作站 + Synology NAS 统一管理</div>
+    <div class="meta">
+        更新日期：2026-06-12 | 硬件：AMD Strix Halo APU | 目标：1 周内上线<br>
+        策略：裸金属 Windows 11 + 镜像回滚 + NAS 集中管控（无需 Proxmox）
+    </div>
+</div>
+
+<!-- Section 1: Architecture -->
+<div class="section">
+    <h2>🏗️ 一、整体架构</h2>
+    
+    <h3>分层防护模型</h3>
+    <div class="layer-stack">
+        <div class="layer layer-4">
+            <span class="layer-num">L4</span>
+            <span class="layer-title">用户数据层</span>
+            <span class="layer-desc">所有用户文件存 NAS / OneDrive，C 盘不留数据</span>
+            <span class="layer-tool">NAS SMB + 文件夹重定向</span>
+        </div>
+        <div class="layer layer-3">
+            <span class="layer-num">L3</span>
+            <span class="layer-title">日常保护层</span>
+            <span class="layer-desc">每次重启自动还原到基线状态，抵御误操作/病毒</span>
+            <span class="layer-tool">Reboot Restore Rx Pro</span>
+        </div>
+        <div class="layer layer-2">
+            <span class="layer-num">L2</span>
+            <span class="layer-title">灾难恢复层</span>
+            <span class="layer-desc">整机裸金属备份，硬盘故障可完全恢复</span>
+            <span class="layer-tool">Synology Active Backup</span>
+        </div>
+        <div class="layer layer-1">
+            <span class="layer-num">L1</span>
+            <span class="layer-title">标准镜像层</span>
+            <span class="layer-desc">Golden Image 模板，新机/重置时批量部署</span>
+            <span class="layer-tool">Clonezilla + NAS 存储</span>
+        </div>
+        <div class="layer layer-0">
+            <span class="layer-num">L0</span>
+            <span class="layer-title">硬件基础层</span>
+            <span class="layer-desc">12× GMK EVO-X2 + NAS + 千兆交换机</span>
+            <span class="layer-tool">物理设备</span>
+        </div>
+    </div>
+
+    <h3>网络拓扑</h3>
+    <div class="arch-diagram">
+┌─────────────────────────────────────────────────────────────────────┐
+│                        交换机 (千兆/2.5G)                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────┐  ┌──────────┐       ┌──────────┐  ┌──────────────┐  │
+│  │ GMK-WS01 │  │ GMK-WS02 │  ...  │ GMK-WS12 │  │ Synology NAS │  │
+│  │ .101     │  │ .102     │       │ .112     │  │ .81 (双网口) │  │
+│  └──────────┘  └──────────┘       └──────────┘  └──────────────┘  │
+│                                                                     │
+│  每台工作站：                         NAS 角色：                     │
+│  • Windows 11 裸金属                  • Golden Image 存储           │
+│  • Reboot Restore Rx Pro             • Active Backup 服务器         │
+│  • Active Backup Agent               • 用户数据共享 (SMB)           │
+│  • NAS 映射网络盘 (Z:)               • Docker 监控服务              │
+│  • WoL 已开启                        • WoL 唤醒管理                 │
+└─────────────────────────────────────────────────────────────────────┘
+
+IP 规划：192.168.0.101 ~ .112（12台工作站）
+NAS：192.168.0.81（保持不变）
+    </div>
+</div>
+
+<!-- Section 2: NAS replaces Proxmox -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>🔄 二、NAS 替代 Proxmox 方案</h2>
+    
+    <div class="decision">
+        <h3>🎯 核心决策：不保留 Proxmox 节点，NAS 承担所有管理职能</h3>
+        <p>原因：12 台全部给用户使用 → 不浪费硬件资源 → NAS 已具备所有必要能力</p>
+    </div>
+
+    <table>
+        <tr>
+            <th>原 Proxmox 功能</th>
+            <th>NAS 替代方案</th>
+            <th>实现方式</th>
+            <th>状态</th>
+        </tr>
+        <tr>
+            <td>镜像存储 & 批量部署</td>
+            <td>NAS 共享 + Clonezilla</td>
+            <td>NFS/SMB 共享 Golden Image，Clonezilla 通过网络还原</td>
+            <td><span class="badge badge-recommend">✅ 原生支持</span></td>
+        </tr>
+        <tr>
+            <td>整机备份 & 裸金属恢复</td>
+            <td>Synology Active Backup for Business</td>
+            <td>免费套件，Agent 部署到每台 Windows，自动增量备份</td>
+            <td><span class="badge badge-recommend">✅ 原生支持</span></td>
+        </tr>
+        <tr>
+            <td>网络监控 Dashboard</td>
+            <td>Docker: Uptime Kuma</td>
+            <td>Synology Docker 跑轻量监控，Ping/HTTP 检查 12 台状态</td>
+            <td><span class="badge badge-ok">🐳 Docker</span></td>
+        </tr>
+        <tr>
+            <td>内部文档 / Wiki</td>
+            <td>Docker: Wiki.js 或 Web Station</td>
+            <td>管理员 SOP、用户手册托管在 NAS 上</td>
+            <td><span class="badge badge-ok">🐳 Docker</span></td>
+        </tr>
+        <tr>
+            <td>远程唤醒 (WoL)</td>
+            <td>NAS 脚本 / Uptime Kuma</td>
+            <td>Scheduled Task 发送 Magic Packet 批量开机</td>
+            <td><span class="badge badge-recommend">✅ 原生支持</span></td>
+        </tr>
+        <tr>
+            <td>PXE 网络启动</td>
+            <td>不需要 (Clonezilla USB 足够)</td>
+            <td>12 台规模 USB 并行部署 < 2h，PXE 过度工程</td>
+            <td><span class="badge badge-no">⏸ 不需要</span></td>
+        </tr>
+        <tr>
+            <td>开发/测试 VM</td>
+            <td>Synology VMM (如需要)</td>
+            <td>NAS 如有足够内存可跑轻量 Linux VM</td>
+            <td><span class="badge badge-ok">📦 可选</span></td>
+        </tr>
+    </table>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>结论：</strong>Synology NAS 完全覆盖 Proxmox 的管理功能，
+            且无需维护额外的虚拟化平台。Active Backup + Docker + 共享存储 = 完整的 Lab 管理中枢。
+        </div>
+    </div>
+</div>
+
+<!-- Section 3: NAS Detailed Config -->
+<div class="section" style="border-left-color: var(--purple);">
+    <h2>📦 三、NAS 配置详情</h2>
+
+    <h3>共享文件夹规划</h3>
+    <div class="nas-role">
+        <div class="nas-item">
+            <strong>/volume1/GoldenImages</strong>
+            <span>存放 Clonezilla 镜像文件（NFS 共享，仅管理员可写）</span>
+        </div>
+        <div class="nas-item">
+            <strong>/volume1/ActiveBackup</strong>
+            <span>Active Backup for Business 自动管理（勿手动修改）</span>
+        </div>
+        <div class="nas-item">
+            <strong>/volume1/LabData</strong>
+            <span>用户工作数据（SMB 共享，映射为 Z: 盘）</span>
+        </div>
+        <div class="nas-item">
+            <strong>/volume1/LabData/WS01~WS12</strong>
+            <span>每台工作站独立目录（权限隔离可选）</span>
+        </div>
+        <div class="nas-item">
+            <strong>/volume1/Software</strong>
+            <span>软件安装包仓库（驱动、工具、License 文件）</span>
+        </div>
+        <div class="nas-item">
+            <strong>/volume1/docker</strong>
+            <span>Docker 容器数据持久化目录</span>
+        </div>
+    </div>
+
+    <h3>Docker 服务部署</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 1. Uptime Kuma - 工作站状态监控</span>
+docker run -d --restart=always \
+  --name uptime-kuma \
+  -p 3001:3001 \
+  -v /volume1/docker/uptime-kuma:/app/data \
+  louislam/uptime-kuma:1
+
+<span class="cmd-comment"># 配置：添加 12 个 Ping Monitor（192.168.0.101~112）</span>
+<span class="cmd-comment"># 告警：连接 Webhook / Email 通知管理员</span>
+
+<span class="cmd-comment"># 2. Wiki.js - 内部文档站（可选）</span>
+docker run -d --restart=always \
+  --name wikijs \
+  -p 3000:3000 \
+  -v /volume1/docker/wikijs:/wiki/data \
+  -e DB_TYPE=sqlite \
+  ghcr.io/requarks/wiki:2
+
+<span class="cmd-comment"># 访问：http://192.168.0.81:3001 (监控) / :3000 (Wiki)</span>
+    </div>
+
+    <h3>Active Backup for Business 配置</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 在 NAS 上：</span>
+<span class="cmd-comment"># 1. 套件中心 → 安装 Active Backup for Business</span>
+<span class="cmd-comment"># 2. 打开 Active Backup → 物理服务器 → 添加设备</span>
+
+<span class="cmd-comment"># 在每台工作站上（Golden Image 中预装）：</span>
+<span class="cmd-comment"># 下载 Agent: https://192.168.0.81:5001 → Active Backup Portal</span>
+<span class="cmd-comment"># 安装后 Agent 自动连接 NAS</span>
+
+<span class="cmd-comment"># 备份策略建议：</span>
+<span class="cmd-comment"># • 类型：整机备份（裸金属恢复）</span>
+<span class="cmd-comment"># • 频率：每周一次（周日凌晨 3:00）</span>
+<span class="cmd-comment"># • 保留：最近 4 个版本</span>
+<span class="cmd-comment"># • 触发：仅在基线更新后手动触发一次完整备份</span>
+    </div>
+</div>
+
+<!-- Section 4: Rollback Software -->
+<div class="section" style="border-left-color: var(--warning);">
+    <h2>🔒 四、回滚软件选型</h2>
+
+    <table>
+        <tr>
+            <th>软件</th>
+            <th>费用</th>
+            <th>管理方式</th>
+            <th>更新策略</th>
+            <th>适合场景</th>
+            <th>推荐度</th>
+        </tr>
+        <tr>
+            <td><strong>Reboot Restore Rx Pro</strong></td>
+            <td>$15/台/年</td>
+            <td>单机管理 + Console</td>
+            <td>可设排定更新窗口</td>
+            <td>公共实验室、培训教室</td>
+            <td><span class="badge badge-recommend">⭐ 首选</span></td>
+        </tr>
+        <tr>
+            <td><strong>Deep Freeze Enterprise</strong></td>
+            <td>$45/台/年</td>
+            <td>中央管控台</td>
+            <td>ThawSpace + 维护期</td>
+            <td>大型企业、严格管控</td>
+            <td><span class="badge badge-ok">备选</span></td>
+        </tr>
+        <tr>
+            <td><strong>Windows UWF</strong></td>
+            <td>免费</td>
+            <td>命令行/组策略</td>
+            <td>手动 servicing mode</td>
+            <td>有 IoT Enterprise License</td>
+            <td><span class="badge badge-ok">条件可选</span></td>
+        </tr>
+        <tr>
+            <td><strong>Shadow Defender</strong></td>
+            <td>$35 买断</td>
+            <td>单机</td>
+            <td>手动</td>
+            <td>—</td>
+            <td><span class="badge badge-no">❌ 已停更</span></td>
+        </tr>
+    </table>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>推荐 Reboot Restore Rx Pro：</strong><br>
+            • 14 天免费试用，验证流程后再决定<br>
+            • 支持排定"更新窗口"（如每周日不还原，让 Windows Update 运行）<br>
+            • 支持远程临时解冻（管理员通过 Console 操作）<br>
+            • 12 台年费 $180，性价比高于 Deep Freeze
+        </div>
+    </div>
+
+    <h3>回滚 + 更新策略</h3>
+    <div class="arch-diagram">
+正常工作日：
+  用户使用 → 重启 → 自动还原到基线 → 用户数据在 NAS 不受影响
+
+每月维护日（建议每月第 1 个周日）：
+  1. 远程解冻所有工作站（Console 或脚本）
+  2. 运行 Windows Update + 软件更新
+  3. 验证系统正常
+  4. 重新设置基线快照
+  5. 冻结
+
+紧急修复：
+  1. 管理员远程解冻单台
+  2. 安装补丁/修复
+  3. 重新冻结
+    </div>
+</div>
+
+<!-- Section 5: Golden Image -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>💿 五、Golden Image 制作流程</h2>
+
+    <h3>Step 1: 在 GMK-WS01 上全新安装 Windows 11</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># BIOS 设置（已验证的 GMK AMI BIOS）：</span>
+<span class="cmd-comment"># • Advanced → CPU Config → SVM Mode: Enabled（备用，不影响裸金属）</span>
+<span class="cmd-comment"># • Advanced → CPU Config → IOMMU: Auto（裸金属无需 Enabled）</span>
+<span class="cmd-comment"># • Advanced → GFX Configuration → iGPU: Auto（裸金属使用默认）</span>
+<span class="cmd-comment"># • Security → Secure Boot: Enabled（裸金属建议开启）</span>
+<span class="cmd-comment"># • Boot → Boot Option #1: USB（安装时）</span>
+
+<span class="cmd-comment"># 安装 Windows 11：</span>
+<span class="cmd-comment"># 1. Rufus 制作安装 U 盘（选择"跳过 TPM/安全启动检查"选项）</span>
+<span class="cmd-comment"># 2. 安装时选择本地账户（Lab-Admin）</span>
+<span class="cmd-comment"># 3. 跳过联网（Shift+F10 → oobe\bypassnro）</span>
+    </div>
+
+    <h3>Step 2: 驱动 & 基础配置</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># AMD 驱动（提前下载到 U 盘或 NAS）：</span>
+<span class="cmd-comment"># • AMD Chipset Driver（主板芯片组）</span>
+<span class="cmd-comment"># • AMD Adrenalin（Radeon 8050S/8060S iGPU）</span>
+<span class="cmd-comment"># • Realtek LAN Driver（有线网卡）</span>
+<span class="cmd-comment"># • Realtek/Intel WiFi + BT Driver</span>
+
+<span class="cmd-comment"># 系统配置：</span>
+<span class="cmd-highlight">powershell</span> -Command "Rename-Computer -NewName 'GMK-WS-TEMPLATE'"
+<span class="cmd-highlight">powershell</span> -Command "Set-TimeZone -Id 'China Standard Time'"
+<span class="cmd-highlight">powershell</span> -Command "Set-WinUILanguageOverride -Language zh-CN"
+
+<span class="cmd-comment"># 电源策略（不休眠、不自动关屏）：</span>
+powercfg /change standby-timeout-ac 0
+powercfg /change monitor-timeout-ac 60
+powercfg /change hibernate-timeout-ac 0
+
+<span class="cmd-comment"># 开启 WoL（设备管理器 → 网卡 → 属性 → 电源管理 → 允许唤醒）</span>
+    </div>
+
+    <h3>Step 3: Lab 工具安装清单</h3>
+    <div class="card-grid">
+        <div class="card">
+            <h4>开发工具</h4>
+            <ul>
+                <li>VS Code + 常用扩展</li>
+                <li>Python 3.12 + pip</li>
+                <li>Git for Windows</li>
+                <li>Node.js LTS</li>
+                <li>Arduino IDE 2.x</li>
+                <li>Anaconda / Miniconda</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>浏览器 & 通讯</h4>
+            <ul>
+                <li>Chrome（设为默认）</li>
+                <li>Edge（保留）</li>
+                <li>Teams（如需要）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>Lab 专用</h4>
+            <ul>
+                <li>串口助手 / Putty</li>
+                <li>Wireshark（网络调试）</li>
+                <li>Docker Desktop（可选）</li>
+                <li>VNC Viewer（远程协助）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>系统工具</h4>
+            <ul>
+                <li>7-Zip</li>
+                <li>Notepad++</li>
+                <li>Active Backup Agent</li>
+                <li>Reboot Restore Rx Pro</li>
+                <li>RustDesk（远程管理）</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Step 4: NAS 映射 & 用户策略</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 映射网络盘（启动脚本 or GPO）：</span>
+net use Z: \\192.168.0.81\LabData /persistent:yes
+
+<span class="cmd-comment"># 桌面/文档重定向（注册表方式）：</span>
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" ^
+  /v "Desktop" /t REG_EXPAND_SZ /d "Z:\%USERNAME%\Desktop" /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" ^
+  /v "Personal" /t REG_EXPAND_SZ /d "Z:\%USERNAME%\Documents" /f
+
+<span class="cmd-comment"># 桌面壁纸/提示（提醒用户数据存 NAS）</span>
+<span class="cmd-comment"># 放置 README.txt 在桌面说明数据策略</span>
+    </div>
+
+    <h3>Step 5: Sysprep 封装</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 清理临时文件：</span>
+cleanmgr /d C: /sagerun:1
+del /q/f %TEMP%\*
+del /q/f C:\Windows\Temp\*
+
+<span class="cmd-comment"># 运行 Sysprep（一般化 + OOBE + 关机）：</span>
+C:\Windows\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown
+
+<span class="cmd-comment"># ⚠️ 关机后不要再启动这台机器！直接用 Clonezilla 采集镜像</span>
+    </div>
+
+    <h3>Step 6: Clonezilla 备份到 NAS</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 1. 用 Clonezilla Live USB 启动 GMK-WS01</span>
+<span class="cmd-comment"># 2. 选择 device-image → local_dev 或 samba_server</span>
+<span class="cmd-comment"># 3. 连接 NAS: //192.168.0.81/GoldenImages</span>
+<span class="cmd-comment"># 4. 选择 savedisk → 命名: ILab-GoldenImage-v1.0-20260612</span>
+<span class="cmd-comment"># 5. 选择源磁盘（NVMe）→ 开始备份</span>
+<span class="cmd-comment"># 6. 预计 15-30 分钟完成（取决于数据量和网速）</span>
+    </div>
+</div>
+
+<!-- Section 6: Batch Deployment -->
+<div class="section">
+    <h2>🚀 六、批量部署方案</h2>
+
+    <h3>方案 A：Clonezilla USB 并行（推荐，12 台规模最高效）</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 准备 3-4 个 Clonezilla Live USB</span>
+<span class="cmd-comment"># 每轮同时部署 3-4 台，共 3-4 轮</span>
+
+<span class="cmd-comment"># 每台操作步骤：</span>
+<span class="cmd-comment"># 1. USB 启动 → Clonezilla Live</span>
+<span class="cmd-comment"># 2. device-image → samba_server → //192.168.0.81/GoldenImages</span>
+<span class="cmd-comment"># 3. restoredisk → 选择 ILab-GoldenImage-v1.0-20260612</span>
+<span class="cmd-comment"># 4. 选择目标磁盘 → 确认覆盖 → 等待 15-20min</span>
+<span class="cmd-comment"># 5. 完成后拔 U 盘 → 正常启动 → 进入 OOBE</span>
+
+<span class="cmd-comment"># OOBE 设置（每台不同）：</span>
+<span class="cmd-comment"># • 计算机名: GMK-WS01 ~ GMK-WS12</span>
+<span class="cmd-comment"># • 本地管理员: Lab-Admin (统一密码)</span>
+<span class="cmd-comment"># • 固定 IP: 192.168.0.101 ~ .112</span>
+    </div>
+
+    <h3>方案 B：Synology Active Backup 恢复（备选）</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 适用场景：单台机器硬盘更换后恢复</span>
+<span class="cmd-comment"># 1. 创建 Active Backup 恢复介质 (USB)</span>
+<span class="cmd-comment"># 2. USB 启动目标机器</span>
+<span class="cmd-comment"># 3. 连接 NAS → 选择备份版本 → 裸金属恢复</span>
+<span class="cmd-comment"># 优点：无需 Sysprep，直接恢复到备份时的状态</span>
+<span class="cmd-comment"># 缺点：每台 SID 相同（除非恢复后再 sysprep）</span>
+    </div>
+
+    <h3>部署后每台机器 Checklist</h3>
+    <div class="cmd-block">
+<span class="cmd-comment"># 自动化脚本（保存为 post-deploy.ps1）</span>
+
+<span class="cmd-comment"># 设置计算机名（参数传入）</span>
+param($WSNumber)
+$name = "GMK-WS$('{0:D2}' -f $WSNumber)"
+Rename-Computer -NewName $name -Force
+
+<span class="cmd-comment"># 设置静态 IP</span>
+$ip = "192.168.0.$([int]$WSNumber + 100)"
+New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress $ip `
+  -PrefixLength 24 -DefaultGateway 192.168.0.1
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet" `
+  -ServerAddresses 192.168.0.1,8.8.8.8
+
+<span class="cmd-comment"># 映射 NAS</span>
+net use Z: \\192.168.0.81\LabData /persistent:yes
+
+<span class="cmd-comment"># 创建用户专属 NAS 目录</span>
+New-Item -Path "Z:\WS$($WSNumber)" -ItemType Directory -Force
+
+<span class="cmd-comment"># 重启生效</span>
+Restart-Computer -Force
+    </div>
+</div>
+
+<!-- Section 7: Blind Spots -->
+<div class="section" style="border-left-color: var(--danger);">
+    <h2>⚠️ 七、容易忽略的问题</h2>
+
+    <div class="blind-spot">
+        <span class="blind-spot-num">1</span>
+        <div>
+            <strong>Windows License</strong><br>
+            12 台 Win11 需要授权。确认是否通过 Microsoft 365 E3/E5 获得 Windows Enterprise 权益，
+            还是需要单独购买 OEM/Volume License。若用 IoT Enterprise 则可免费用 UWF。
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">2</span>
+        <div>
+            <strong>AMD Strix Halo 驱动兼容性</strong><br>
+            全新平台，Windows 自带驱动可能不完整。必须提前准备离线驱动包：
+            芯片组、GPU (Radeon 8050S)、网卡、USB 控制器。建议在 Golden Image 中验证所有设备管理器无感叹号。
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">3</span>
+        <div>
+            <strong>Sysprep 与回滚软件冲突</strong><br>
+            Reboot Restore Rx Pro 必须在 Sysprep 之后、首次 OOBE 完成后再安装。
+            否则封装会破坏回滚基线。正确顺序：Sysprep → 克隆 → 部署 → OOBE → 装回滚软件 → 设基线。
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">4</span>
+        <div>
+            <strong>回滚后 NAS 映射丢失</strong><br>
+            如果用户 Profile 被还原，net use persistent 映射可能丢失。
+            解决：用启动脚本（Task Scheduler 或 GPO Logon Script）每次登录自动映射。
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">5</span>
+        <div>
+            <strong>时钟同步 & Hostname 冲突</strong><br>
+            12 台从同一镜像克隆后，如果 SID 未正确一般化，Windows 网络发现会冲突。
+            Sysprep /generalize 是关键步骤，不可跳过。
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">6</span>
+        <div>
+            <strong>NAS 单点故障</strong><br>
+            如果 NAS 挂了，用户数据和备份都不可用。建议：
+            • NAS 配置 RAID（SHR/RAID 5 以上）
+            • 重要数据启用 Hyper Backup 到外部硬盘或云（Azure Blob 等）
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">7</span>
+        <div>
+            <strong>12 台差异化需求</strong><br>
+            如果每台工作站有不同的软件/配置需求，需要：
+            • 方案 A：一个 Golden Image + 部署后脚本差异化
+            • 方案 B：多个 Golden Image（维护成本高）
+            • 建议用方案 A，post-deploy 脚本按工位号安装特定软件
+        </div>
+    </div>
+    <div class="blind-spot">
+        <span class="blind-spot-num">8</span>
+        <div>
+            <strong>远程管理工具</strong><br>
+            没有 Proxmox 后，日常管理 12 台需要远程方案：
+            • RustDesk（开源远程桌面，自建中继服务器在 NAS Docker）
+            • 或 PowerShell Remoting (WinRM) 批量执行命令
+            • 建议两者都装入 Golden Image
+        </div>
+    </div>
+</div>
+
+<!-- Section 8: Timeline -->
+<div class="section">
+    <h2>📅 八、7 天执行计划</h2>
+
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="timeline-day">Day 1（周四）</div>
+            <div class="timeline-title">Golden Image 基础系统</div>
+            <ul class="timeline-tasks">
+                <li>GMK-WS01 安装 Windows 11（BIOS 恢复裸金属设置）</li>
+                <li>安装所有 AMD 驱动，确认设备管理器无异常</li>
+                <li>安装基础工具（VS Code, Python, Git, Chrome 等）</li>
+                <li>配置电源策略 & WoL</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：1 台完整配置的参考机</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-day">Day 2（周五）</div>
+            <div class="timeline-title">Golden Image 完善 & 封装</div>
+            <ul class="timeline-tasks">
+                <li>安装 Lab 专用工具（Arduino, 串口等）</li>
+                <li>安装 Active Backup Agent（预配置 NAS 地址）</li>
+                <li>配置 NAS 映射脚本（登录脚本方式）</li>
+                <li>放置桌面提示文件 & 壁纸</li>
+                <li>运行 Sysprep /generalize /oobe /shutdown</li>
+                <li>Clonezilla 备份到 NAS</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：Golden Image v1.0 存储在 NAS</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-day">Day 3（周六）</div>
+            <div class="timeline-title">批量部署</div>
+            <ul class="timeline-tasks">
+                <li>准备 3 个 Clonezilla USB</li>
+                <li>每轮 3 台并行还原（4 轮完成 11 台）</li>
+                <li>每台完成 OOBE → 运行 post-deploy.ps1 设定 hostname/IP</li>
+                <li>验证每台能访问 NAS、上网正常</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：12 台系统就绪，各有唯一 hostname/IP</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-day">Day 4（周日）</div>
+            <div class="timeline-title">保护层部署</div>
+            <ul class="timeline-tasks">
+                <li>每台安装 Reboot Restore Rx Pro</li>
+                <li>设置基线快照</li>
+                <li>测试重启还原是否生效</li>
+                <li>配置 Active Backup 备份计划（每周日）</li>
+                <li>手动触发一次完整备份</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：L2 + L3 保护层生效</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-day">Day 5（周一）</div>
+            <div class="timeline-title">NAS & 监控配置</div>
+            <ul class="timeline-tasks">
+                <li>NAS 创建共享目录结构（LabData/WS01~WS12）</li>
+                <li>验证每台 Z: 盘映射正常</li>
+                <li>NAS Docker 部署 Uptime Kuma</li>
+                <li>添加 12 台工作站监控 + 告警通知</li>
+                <li>配置 WoL（测试远程唤醒）</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：数据策略 + 监控告警就绪</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-day">Day 6（周二）</div>
+            <div class="timeline-title">安全 & 远程管理</div>
+            <ul class="timeline-tasks">
+                <li>配置 YubiKey 绑定（如需要）</li>
+                <li>启用 Windows Firewall 规则</li>
+                <li>RustDesk / WinRM 远程管理验证</li>
+                <li>设置管理员密码策略</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：安全策略就绪</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-day">Day 7（周三）</div>
+            <div class="timeline-title">验收 & 文档</div>
+            <ul class="timeline-tasks">
+                <li>全面验收 Checklist（12 台逐一验证）</li>
+                <li>编写用户使用手册（数据保存、重启须知）</li>
+                <li>编写管理员 SOP（月度维护、应急处理）</li>
+                <li>更新 GitHub Pages 文档站</li>
+            </ul>
+            <div class="timeline-output">✅ 产出：Lab 正式上线 🎉</div>
+        </div>
+    </div>
+</div>
+
+<!-- Section 9: Verification Checklist -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>✅ 九、验收 Checklist（每台工作站）</h2>
+    
+    <table>
+        <tr>
+            <th>#</th>
+            <th>验收项</th>
+            <th>验证方法</th>
+            <th>通过标准</th>
+        </tr>
+        <tr><td>1</td><td>系统启动</td><td>开机观察</td><td>30s 内进入桌面</td></tr>
+        <tr><td>2</td><td>设备驱动</td><td>设备管理器</td><td>无感叹号/未知设备</td></tr>
+        <tr><td>3</td><td>网络连通</td><td>ping NAS + 外网</td><td>延迟 < 5ms (LAN)</td></tr>
+        <tr><td>4</td><td>NAS 映射</td><td>访问 Z:\</td><td>可读写文件</td></tr>
+        <tr><td>5</td><td>回滚功能</td><td>创建文件 → 重启</td><td>文件消失 = 正常</td></tr>
+        <tr><td>6</td><td>NAS 数据持久</td><td>Z: 存文件 → 重启</td><td>Z: 文件仍在 = 正常</td></tr>
+        <tr><td>7</td><td>Active Backup</td><td>NAS 控制台查看</td><td>设备在线、最近备份成功</td></tr>
+        <tr><td>8</td><td>WoL</td><td>从 NAS 发 magic packet</td><td>关机状态可唤醒</td></tr>
+        <tr><td>9</td><td>远程管理</td><td>RustDesk 连接</td><td>可远程操作桌面</td></tr>
+        <tr><td>10</td><td>USB 设备</td><td>插入 Arduino/传感器</td><td>正常识别驱动</td></tr>
+        <tr><td>11</td><td>显示输出</td><td>连接显示器</td><td>分辨率正确、无花屏</td></tr>
+        <tr><td>12</td><td>性能基线</td><td>CrystalDiskMark / Cinebench</td><td>记录基准值</td></tr>
+    </table>
+</div>
+
+<!-- Section 10: Maintenance SOP -->
+<div class="section">
+    <h2>🔧 十、日常维护 SOP</h2>
+
+    <div class="card-grid">
+        <div class="card" style="border-top: 3px solid var(--primary);">
+            <h4>📅 月度维护（每月第 1 个周日）</h4>
+            <ul>
+                <li>解冻所有工作站</li>
+                <li>运行 Windows Update</li>
+                <li>更新 Lab 软件（VS Code, Python 等）</li>
+                <li>验证系统正常</li>
+                <li>重新设置回滚基线</li>
+                <li>触发 Active Backup 完整备份</li>
+                <li>更新 Golden Image（如有重大变更）</li>
+            </ul>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--warning);">
+            <h4>🚨 应急处理</h4>
+            <ul>
+                <li><strong>软件问题：</strong>重启即还原</li>
+                <li><strong>还原失效：</strong>Active Backup 裸金属恢复</li>
+                <li><strong>硬盘故障：</strong>换盘 + Clonezilla 重新部署</li>
+                <li><strong>批量问题：</strong>Golden Image 重新克隆</li>
+                <li><strong>NAS 故障：</strong>依赖 RAID + Hyper Backup</li>
+            </ul>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--success);">
+            <h4>📊 每日检查（自动）</h4>
+            <ul>
+                <li>Uptime Kuma 监控面板（NAS:3001）</li>
+                <li>所有工作站 Ping 状态正常</li>
+                <li>Active Backup Agent 全部在线</li>
+                <li>NAS 存储空间 > 20% 剩余</li>
+                <li>告警邮件/Webhook 通知</li>
+            </ul>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--purple);">
+            <h4>📝 文档更新</h4>
+            <ul>
+                <li>Golden Image 版本日志</li>
+                <li>每次维护记录（日期、内容）</li>
+                <li>硬件故障记录</li>
+                <li>用户反馈收集</li>
+                <li>GitHub Pages 同步更新</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Section 11: Cost Summary -->
+<div class="section" style="border-left-color: #495057;">
+    <h2>💰 十一、成本估算</h2>
+
+    <table>
+        <tr>
+            <th>项目</th>
+            <th>单价</th>
+            <th>数量</th>
+            <th>年费用</th>
+            <th>备注</th>
+        </tr>
+        <tr>
+            <td>Reboot Restore Rx Pro</td>
+            <td>$15/台/年</td>
+            <td>12</td>
+            <td>$180</td>
+            <td>14 天试用验证</td>
+        </tr>
+        <tr>
+            <td>Windows 11 License</td>
+            <td>视授权方式</td>
+            <td>12</td>
+            <td>—</td>
+            <td>确认 M365 权益或 OEM</td>
+        </tr>
+        <tr>
+            <td>Synology Active Backup</td>
+            <td>免费</td>
+            <td>1</td>
+            <td>$0</td>
+            <td>NAS 套件自带</td>
+        </tr>
+        <tr>
+            <td>Clonezilla</td>
+            <td>免费</td>
+            <td>—</td>
+            <td>$0</td>
+            <td>开源</td>
+        </tr>
+        <tr>
+            <td>Uptime Kuma</td>
+            <td>免费</td>
+            <td>1</td>
+            <td>$0</td>
+            <td>Docker 部署</td>
+        </tr>
+        <tr>
+            <td>RustDesk</td>
+            <td>免费（自建）</td>
+            <td>—</td>
+            <td>$0</td>
+            <td>Docker relay server</td>
+        </tr>
+        <tr style="font-weight:bold; background: var(--success-light);">
+            <td colspan="3">总计（不含 Windows License）</td>
+            <td>$180/年</td>
+            <td>≈ ¥1,300/年</td>
+        </tr>
+    </table>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div>
+            <strong>对比 Proxmox 方案：</strong>省去了 1 台专用管理服务器 + Proxmox 学习/维护成本，
+            12 台全部给用户使用，人均资源最大化。
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <p>I-Lab Bare Metal Deployment Plan v2.0 | Generated: 2026-06-12</p>
+    <p>GitHub: <a href="https://github.com/kylehuang0323-ai/GMK-proxmox-GPU-setup">kylehuang0323-ai/GMK-proxmox-GPU-setup</a></p>
+    <p>Strategy: Bare-metal Windows + NAS-centric Management (No Proxmox Required)</p>
+</div>
+
+</div>
+</body>
+</html>
