@@ -187,7 +187,7 @@
 
     <div class="tool-grid">
         <div class="tool-item"><strong>VS Code</strong><br>主力代码编辑器</div>
-        <div class="tool-item"><strong>Python 3.12</strong><br>AI/ML 开发必备</div>
+        <div class="tool-item"><strong>Python 3.13</strong><br>AI/ML 开发必备</div>
         <div class="tool-item"><strong>Git</strong><br>版本控制</div>
         <div class="tool-item"><strong>Node.js LTS</strong><br>Web 开发运行时</div>
         <div class="tool-item"><strong>Miniconda</strong><br>Python 环境管理</div>
@@ -216,8 +216,8 @@
     <div class="cmd"><span class="comment"># VS Code - 代码编辑器</span>
 winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements
 
-<span class="comment"># Python 3.12</span>
-winget install -e --id Python.Python.3.12
+<span class="comment"># Python 3.13（稳定版，生态兼容性最佳）</span>
+winget install -e --id Python.Python.3.13
 
 <span class="comment"># Git for Windows</span>
 winget install -e --id Git.Git
@@ -269,7 +269,7 @@ winget install -e --id RustDesk.RustDesk</div>
 
 <span class="highlight">$tools</span> = @(
     <span class="string">"Microsoft.VisualStudioCode"</span>,
-    <span class="string">"Python.Python.3.12"</span>,
+    <span class="string">"Python.Python.3.13"</span>,
     <span class="string">"Git.Git"</span>,
     <span class="string">"OpenJS.NodeJS.LTS"</span>,
     <span class="string">"Anaconda.Miniconda3"</span>,
@@ -349,7 +349,7 @@ code --install-extension ms-toolsai.jupyter</div>
     <h2>3.5 Python 环境验证 & 预装库</h2>
     <div class="cmd"><span class="comment"># 验证 Python 安装</span>
 python --version
-<span class="comment"># 预期输出：Python 3.12.x</span>
+<span class="comment"># 预期输出：Python 3.13.x</span>
 
 pip --version
 <span class="comment"># 预期输出：pip 24.x from ...</span>
