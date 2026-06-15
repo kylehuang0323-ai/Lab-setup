@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMK EVO-X2 驱动安装指南 - I-Lab</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-light: #CFE4FA;
+            --success: #107C10;
+            --success-light: #DFF6DD;
+            --warning: #F7630C;
+            --warning-light: #FFF4CE;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, 'Microsoft YaHei', sans-serif;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.7;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #0078D4, #005a9e);
+            color: white;
+            padding: 36px 40px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,120,212,0.25);
+        }
+        .header h1 { font-size: 1.7em; margin-bottom: 6px; }
+        .header .subtitle { opacity: 0.9; }
+        .header .meta { margin-top: 10px; font-size: 0.85em; opacity: 0.75; }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 26px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 14px;
+            font-size: 1.25em;
+        }
+        .section h3 {
+            color: #444;
+            margin: 16px 0 8px;
+            font-size: 1em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.88em;
+        }
+        th { background: var(--primary); color: white; padding: 10px 12px; text-align: left; }
+        td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+        tr:hover td { background: #f9fbff; }
+        .cmd {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.84em;
+            overflow-x: auto;
+            margin: 10px 0;
+            line-height: 1.7;
+            position: relative;
+        }
+        .cmd .comment { color: #6a9955; }
+        .cmd .highlight { color: #569cd6; }
+        .cmd .string { color: #ce9178; }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: #333;
+            color: #ccc;
+            border: 1px solid #555;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .copy-btn:hover { background: #444; color: #fff; }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin: 12px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .alert-info { background: var(--primary-light); border: 1px solid var(--primary); }
+        .alert-warning { background: var(--warning-light); border: 1px solid var(--warning); }
+        .alert-success { background: var(--success-light); border: 1px solid var(--success); }
+        .alert-icon { font-size: 1.2em; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            font-weight: 600;
+        }
+        .badge-exe { background: #e3f2fd; color: #1565c0; }
+        .badge-inf { background: #fce4ec; color: #c62828; }
+        .badge-bat { background: var(--success-light); color: var(--success); }
+        .nav-links {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: var(--primary-light);
+            border-radius: 8px;
+        }
+        .nav-links a {
+            color: var(--primary);
+            margin-right: 20px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>🔧 GMK EVO-X2 驱动安装指南</h1>
+    <div class="subtitle">AXB35_02 · Windows 11 24H2 · 驱动包 V007</div>
+    <div class="meta">
+        硬件：AMD Strix Halo APU | 适用设备：GMK EVO-X2 (I-Lab 12台工作站)<br>
+        驱动来源：NAS \\192.168.0.81\Software\AXB35_02_Win11_24H2_Driver_list_V007
+    </div>
+</div>
+
+<div class="nav-links">
+    📍 <a href="index.html">NAS 配置手册</a>
+    <a href="deployment-plan.html">部署方案</a>
+    <a href="driver-install.html"><strong>驱动安装（当前）</strong></a>
+</div>
+
+<!-- Quick Start -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>⚡ 一键安装（快速开始）</h2>
+    
+    <h3>方式一：从 NAS 直接运行</h3>
+    <div class="cmd">
+        <span class="comment">REM 在工作站上以管理员身份打开 CMD，执行：</span>
+<span class="highlight">\\192.168.0.81\Software\AXB35_02_Win11_24H2_Driver_list_V007\AllDriverInstall.cmd</span>
+    </div>
+
+    <h3>方式二：复制到本地后运行（推荐，更快更稳定）</h3>
+    <div class="cmd">
+        <span class="comment">REM 1. 映射 NAS</span>
+net use Z: \\192.168.0.81\Software
+
+<span class="comment">REM 2. 复制驱动包到本地</span>
+xcopy Z:\AXB35_02_Win11_24H2_Driver_list_V007 C:\Drivers\AXB35 /E /I /H /Y
+
+<span class="comment">REM 3. 运行一键安装脚本（自动请求管理员权限）</span>
+<span class="highlight">C:\Drivers\AXB35\AllDriverInstall.cmd</span>
+    </div>
+
+    <h3>方式三：使用优化版脚本（带日志和进度显示）</h3>
+    <div class="cmd">
+        <span class="comment">REM 将优化版脚本复制到驱动包根目录后运行：</span>
+copy \\192.168.0.81\Software\GMK-EVO-X2-DriverInstall.cmd C:\Drivers\AXB35\
+<span class="highlight">C:\Drivers\AXB35\GMK-EVO-X2-DriverInstall.cmd</span>
+
+<span class="comment">REM 安装完成后查看日志：</span>
+type C:\Drivers\AXB35\DriverInstall_*.log
+    </div>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div>
+            <strong>注意事项：</strong><br>
+            • 必须以<strong>管理员身份</strong>运行（脚本会自动提权）<br>
+            • 安装过程中屏幕可能闪烁（显卡驱动安装时正常）<br>
+            • 全部完成后<strong>务必重启</strong>计算机<br>
+            • 预计安装时间：8-15 分钟
+        </div>
+    </div>
+</div>
+
+<!-- Driver List -->
+<div class="section">
+    <h2>📋 驱动清单详情</h2>
+
+    <table>
+        <tr>
+            <th>#</th>
+            <th>驱动名称</th>
+            <th>版本</th>
+            <th>安装脚本</th>
+            <th>类型</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td>01</td>
+            <td><strong>AMD Chipset</strong></td>
+            <td>7.04.30.030</td>
+            <td><span class="badge badge-bat">Install.bat</span></td>
+            <td>INF 驱动包</td>
+            <td>芯片组驱动（GPIO、I2C、电源管理等）</td>
+        </tr>
+        <tr>
+            <td>02</td>
+            <td><strong>AMD Graphics</strong></td>
+            <td>24.20.64</td>
+            <td><span class="badge badge-bat">Install.bat</span></td>
+            <td>EXE 安装器</td>
+            <td>Radeon 8050S/8060S iGPU 显卡驱动</td>
+        </tr>
+        <tr>
+            <td>03</td>
+            <td><strong>Senary Audio</strong></td>
+            <td>4.18.0.4</td>
+            <td><span class="badge badge-bat">Install.bat</span></td>
+            <td>INF + 服务</td>
+            <td>音频驱动（扬声器、麦克风）</td>
+        </tr>
+        <tr>
+            <td>04</td>
+            <td><strong>AMD WiFi</strong></td>
+            <td>5.5.0.3760</td>
+            <td><span class="badge badge-bat">wifiInstall.bat</span></td>
+            <td>INF 驱动</td>
+            <td>MediaTek WiFi 无线网卡</td>
+        </tr>
+        <tr>
+            <td>05</td>
+            <td><strong>AMD Bluetooth</strong></td>
+            <td>1.1042.0.527</td>
+            <td><span class="badge badge-bat">BTInstall.bat</span></td>
+            <td>INF 驱动</td>
+            <td>MediaTek 蓝牙</td>
+        </tr>
+        <tr>
+            <td>06</td>
+            <td><strong>Realtek LAN</strong></td>
+            <td>1125.021.0903</td>
+            <td><span class="badge badge-bat">Install.bat</span></td>
+            <td>INF 驱动</td>
+            <td>Realtek 2.5G 有线网卡</td>
+        </tr>
+        <tr>
+            <td>07</td>
+            <td><strong>Card Reader</strong></td>
+            <td>1.1.49.0</td>
+            <td><span class="badge badge-bat">Install.bat</span></td>
+            <td>INF 驱动</td>
+            <td>Genesys Logic SD 读卡器</td>
+        </tr>
+        <tr>
+            <td>08</td>
+            <td><strong>AMD ACP</strong></td>
+            <td>7.0.0.44</td>
+            <td><span class="badge badge-bat">install.bat</span></td>
+            <td>INF + 服务</td>
+            <td>AMD Audio Co-Processor 音频协处理器</td>
+        </tr>
+        <tr>
+            <td>09</td>
+            <td><strong>Camera</strong></td>
+            <td>11.4.2.629</td>
+            <td><span class="badge badge-bat">install.bat</span></td>
+            <td>INF 驱动</td>
+            <td>AMD ISP 摄像头驱动</td>
+        </tr>
+        <tr>
+            <td>10</td>
+            <td><strong>Radeon Software</strong></td>
+            <td>14.0.33728.0</td>
+            <td><span class="badge badge-bat">Appinstall.bat</span></td>
+            <td>应用程序</td>
+            <td>AMD Radeon 显卡管理/设置面板</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Manual Install -->
+<div class="section">
+    <h2>🔨 手动逐个安装</h2>
+    <p>如需单独安装某个驱动，可以在管理员 CMD 中执行：</p>
+
+    <div class="cmd">
+<span class="comment">REM 设置驱动包根路径（根据实际位置修改）</span>
+<span class="highlight">set</span> DRV=<span class="string">C:\Drivers\AXB35</span>
+
+<span class="comment">REM === 01. AMD 芯片组 ===</span>
+cd /d %DRV%\01_AMD_Chipset_7.04.30.030
+call Install.bat
+
+<span class="comment">REM === 02. AMD 显卡 ===</span>
+cd /d %DRV%\02_AMD_Graphics_24.20.64
+call Install.bat
+
+<span class="comment">REM === 03. 声卡 ===</span>
+cd /d %DRV%\03_Senary_Audio_4.18.0.4
+call Install.bat
+
+<span class="comment">REM === 04. WiFi ===</span>
+cd /d %DRV%\04_AMD_WiFi_5.5.0.3760
+call wifiInstall.bat
+
+<span class="comment">REM === 05. 蓝牙 ===</span>
+cd /d %DRV%\05_AMD_BT_1.1042.0.527
+call BTInstall.bat
+
+<span class="comment">REM === 06. 有线网卡 ===</span>
+cd /d %DRV%\06_Lan_1125.021.0903.2024
+call Install.bat
+
+<span class="comment">REM === 07. 读卡器 ===</span>
+cd /d %DRV%\07_Cardreader_1.1.49.0
+call Install.bat
+
+<span class="comment">REM === 08. ACP ===</span>
+cd /d %DRV%\08_ACP_7.0.0.44
+call install.bat
+
+<span class="comment">REM === 09. 摄像头 ===</span>
+cd /d %DRV%\09_Camera_11.4.2.629
+call install.bat
+
+<span class="comment">REM === 10. Radeon Software ===</span>
+cd /d %DRV%\10_AMD_radeonsoftware_14.0.33728.0
+call Appinstall.bat
+
+<span class="comment">REM === 完成，重启 ===</span>
+shutdown /r /t 60 /c "驱动安装完成，60秒后自动重启"
+    </div>
+</div>
+
+<!-- PowerShell Alternative -->
+<div class="section">
+    <h2>💻 PowerShell 一键脚本（从 NAS 安装）</h2>
+    <p>适合已连接 NAS 的工作站，一行命令完成全部安装：</p>
+
+    <div class="cmd">
+<span class="comment"># 以管理员身份运行 PowerShell，执行：</span>
+
+<span class="highlight">$drvRoot</span> = <span class="string">"\\192.168.0.81\Software\AXB35_02_Win11_24H2_Driver_list_V007"</span>
+
+<span class="comment"># 复制到本地（网络安装可能被策略阻止）</span>
+Copy-Item $drvRoot -Destination <span class="string">"C:\Drivers\AXB35"</span> -Recurse -Force
+Set-Location <span class="string">"C:\Drivers\AXB35"</span>
+
+<span class="comment"># 按顺序安装所有驱动</span>
+<span class="highlight">$drivers</span> = @(
+    @{Folder=<span class="string">"01_AMD_Chipset_7.04.30.030"</span>;     Script=<span class="string">"Install.bat"</span>;     Name=<span class="string">"AMD Chipset"</span>},
+    @{Folder=<span class="string">"02_AMD_Graphics_24.20.64"</span>;       Script=<span class="string">"Install.bat"</span>;     Name=<span class="string">"AMD Graphics"</span>},
+    @{Folder=<span class="string">"03_Senary_Audio_4.18.0.4"</span>;       Script=<span class="string">"Install.bat"</span>;     Name=<span class="string">"Senary Audio"</span>},
+    @{Folder=<span class="string">"04_AMD_WiFi_5.5.0.3760"</span>;         Script=<span class="string">"wifiInstall.bat"</span>; Name=<span class="string">"AMD WiFi"</span>},
+    @{Folder=<span class="string">"05_AMD_BT_1.1042.0.527"</span>;         Script=<span class="string">"BTInstall.bat"</span>;   Name=<span class="string">"AMD Bluetooth"</span>},
+    @{Folder=<span class="string">"06_Lan_1125.021.0903.2024"</span>;      Script=<span class="string">"Install.bat"</span>;     Name=<span class="string">"Realtek LAN"</span>},
+    @{Folder=<span class="string">"07_Cardreader_1.1.49.0"</span>;         Script=<span class="string">"Install.bat"</span>;     Name=<span class="string">"Card Reader"</span>},
+    @{Folder=<span class="string">"08_ACP_7.0.0.44"</span>;                Script=<span class="string">"install.bat"</span>;     Name=<span class="string">"AMD ACP"</span>},
+    @{Folder=<span class="string">"09_Camera_11.4.2.629"</span>;           Script=<span class="string">"install.bat"</span>;     Name=<span class="string">"Camera"</span>},
+    @{Folder=<span class="string">"10_AMD_radeonsoftware_14.0.33728.0"</span>; Script=<span class="string">"Appinstall.bat"</span>; Name=<span class="string">"Radeon Software"</span>}
+)
+
+<span class="highlight">foreach</span> ($drv <span class="highlight">in</span> $drivers) {
+    Write-Host <span class="string">"[安装中]"</span> $drv.Name -ForegroundColor Cyan
+    Push-Location $drv.Folder
+    & cmd.exe /c $drv.Script 2>&1 | Out-Null
+    <span class="highlight">if</span> ($LASTEXITCODE -eq 0) {
+        Write-Host <span class="string">"  [成功]"</span> $drv.Name -ForegroundColor Green
+    } <span class="highlight">else</span> {
+        Write-Host <span class="string">"  [失败]"</span> $drv.Name <span class="string">"(Exit: $LASTEXITCODE)"</span> -ForegroundColor Red
+    }
+    Pop-Location
+    Start-Sleep -Seconds 2
+}
+
+Write-Host <span class="string">"`n全部完成！建议重启计算机。"</span> -ForegroundColor Yellow
+<span class="comment"># Restart-Computer -Force  # 取消注释以自动重启</span>
+    </div>
+</div>
+
+<!-- Verification -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>✅ 安装后验证</h2>
+
+    <h3>快速检查命令</h3>
+    <div class="cmd">
+<span class="comment"># 检查设备管理器中是否有异常设备</span>
+powershell -Command "Get-PnpDevice -Status Error,Degraded,Unknown | Format-Table Name,Status,Class"
+
+<span class="comment"># 如果无输出 = 所有设备正常 ✅</span>
+<span class="comment"># 如果有输出 = 存在未安装/异常的设备 ❌</span>
+    </div>
+
+    <h3>完整验证清单</h3>
+    <table>
+        <tr><th>#</th><th>验证项</th><th>方法</th><th>预期结果</th></tr>
+        <tr><td>1</td><td>设备管理器</td><td>devmgmt.msc</td><td>无感叹号/问号设备</td></tr>
+        <tr><td>2</td><td>显卡</td><td>dxdiag → 显示</td><td>显示 AMD Radeon 8050S/8060S</td></tr>
+        <tr><td>3</td><td>有线网络</td><td>ping 192.168.0.81</td><td>延迟 < 1ms</td></tr>
+        <tr><td>4</td><td>WiFi</td><td>连接 WiFi 测试</td><td>可正常连接并上网</td></tr>
+        <tr><td>5</td><td>蓝牙</td><td>设置 → 蓝牙</td><td>蓝牙已开启，可发现设备</td></tr>
+        <tr><td>6</td><td>音频</td><td>播放测试音频</td><td>有声音输出</td></tr>
+        <tr><td>7</td><td>摄像头</td><td>相机应用</td><td>可预览画面</td></tr>
+        <tr><td>8</td><td>读卡器</td><td>插入 SD 卡</td><td>正常识别</td></tr>
+    </table>
+</div>
+
+<!-- Troubleshooting -->
+<div class="section" style="border-left-color: var(--warning);">
+    <h2>🚨 故障排除</h2>
+
+    <table>
+        <tr><th>问题</th><th>可能原因</th><th>解决方案</th></tr>
+        <tr>
+            <td>安装脚本闪退</td>
+            <td>未以管理员运行</td>
+            <td>右键 → 以管理员身份运行</td>
+        </tr>
+        <tr>
+            <td>显卡驱动安装失败</td>
+            <td>需先安装芯片组驱动</td>
+            <td>确保按 01→10 顺序安装</td>
+        </tr>
+        <tr>
+            <td>网卡驱动安装后无网络</td>
+            <td>需要重启生效</td>
+            <td>重启计算机</td>
+        </tr>
+        <tr>
+            <td>NAS 路径无法访问</td>
+            <td>网卡驱动未装/IP 未配</td>
+            <td>先用 U 盘拷贝有线网卡驱动(06)手动安装</td>
+        </tr>
+        <tr>
+            <td>设备管理器仍有感叹号</td>
+            <td>驱动未完整安装</td>
+            <td>检查日志 → 重新运行对应单个驱动的 bat</td>
+        </tr>
+    </table>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>最佳实践：</strong>如果工作站还未联网（新装系统），建议先用 U 盘拷贝 
+            <code>06_Lan</code>（有线网卡）驱动手动安装，连上 NAS 后再运行完整的一键脚本。
+        </div>
+    </div>
+</div>
+
+<!-- File Structure -->
+<div class="section">
+    <h2>📁 NAS 驱动包目录结构</h2>
+    <div class="cmd">
+\\192.168.0.81\Software\
+└── AXB35_02_Win11_24H2_Driver_list_V007\
+    ├── AllDriverInstall.cmd              <span class="comment">← 厂商原版一键安装</span>
+    ├── GMK-EVO-X2-DriverInstall.cmd      <span class="comment">← 优化版（带日志/进度）</span>
+    ├── 01_AMD_Chipset_7.04.30.030\       <span class="comment">← 芯片组</span>
+    │   └── Install.bat
+    ├── 02_AMD_Graphics_24.20.64\         <span class="comment">← 显卡</span>
+    │   └── Install.bat
+    ├── 03_Senary_Audio_4.18.0.4\         <span class="comment">← 声卡</span>
+    │   └── Install.bat
+    ├── 04_AMD_WiFi_5.5.0.3760\           <span class="comment">← WiFi</span>
+    │   └── wifiInstall.bat
+    ├── 05_AMD_BT_1.1042.0.527\           <span class="comment">← 蓝牙</span>
+    │   └── BTInstall.bat
+    ├── 06_Lan_1125.021.0903.2024\        <span class="comment">← 有线网卡</span>
+    │   └── Install.bat
+    ├── 07_Cardreader_1.1.49.0\           <span class="comment">← 读卡器</span>
+    │   └── Install.bat
+    ├── 08_ACP_7.0.0.44\                  <span class="comment">← 音频协处理器</span>
+    │   └── install.bat
+    ├── 09_Camera_11.4.2.629\             <span class="comment">← 摄像头</span>
+    │   └── install.bat
+    └── 10_AMD_radeonsoftware_14.0.33728.0\ <span class="comment">← Radeon 管理软件</span>
+        └── Appinstall.bat
+    </div>
+</div>
+
+<div class="footer">
+    <p>GMK EVO-X2 Driver Installation Guide | I-Lab | 2026-06-15</p>
+    <p>驱动包版本: AXB35_02_Win11_24H2_Driver_list_V007</p>
+</div>
+
+</div>
+</body>
+</html>
