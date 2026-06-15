@@ -249,6 +249,16 @@ winget install -e --id WiresharkFoundation.Wireshark</div>
     <div class="cmd"><span class="comment"># Arduino IDE 2.x</span>
 winget install -e --id ArduinoSA.IDE.stable</div>
 
+    <h3>运行时 & 依赖库</h3>
+    <div class="cmd"><span class="comment"># Visual C++ 2015-2022 Redistributable（大量软件依赖）</span>
+winget install -e --id Microsoft.VCRedist.2015+.x64
+
+<span class="comment"># .NET 8 Runtime（运行 .NET 应用）</span>
+winget install -e --id Microsoft.DotNet.Runtime.8
+
+<span class="comment"># .NET 8 Desktop Runtime（运行 WPF/WinForms 桌面应用）</span>
+winget install -e --id Microsoft.DotNet.DesktopRuntime.8</div>
+
     <h3>远程管理</h3>
     <div class="cmd"><span class="comment"># RustDesk（开源远程桌面，管理员远程维护用）</span>
 winget install -e --id RustDesk.RustDesk</div>
@@ -279,6 +289,9 @@ winget install -e --id RustDesk.RustDesk</div>
     <span class="string">"PuTTY.PuTTY"</span>,
     <span class="string">"WiresharkFoundation.Wireshark"</span>,
     <span class="string">"ArduinoSA.IDE.stable"</span>,
+    <span class="string">"Microsoft.VCRedist.2015+.x64"</span>,
+    <span class="string">"Microsoft.DotNet.Runtime.8"</span>,
+    <span class="string">"Microsoft.DotNet.DesktopRuntime.8"</span>,
     <span class="string">"RustDesk.RustDesk"</span>
 )
 
