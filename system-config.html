@@ -416,6 +416,112 @@ Invoke-WebRequest -Uri <span class="string">"https://live.sysinternals.com/Autol
             <td>电源唤醒要求密码</td>
             <td><code>powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_NONE CONSOLELOCK 0</code></td>
         </tr>
+        <tr>
+            <td>以上全做了仍要密码</td>
+            <td>Win11 PasswordLess 设备策略</td>
+            <td><code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device" /v DevicePasswordLessBuildVersion /t REG_DWORD /d 0 /f</code></td>
+        </tr>
+    </table>
+
+    <h3>🔍 诊断脚本：一键检查所有状态</h3>
+    <p>如果配置后仍无法自动登录，运行以下脚本查看各项设置当前值，定位问题所在：</p>
+    <div class="cmd"><span class="comment">REM ============================================</span>
+<span class="comment">REM  无密码自动登录 - 状态诊断脚本</span>
+<span class="comment">REM  以管理员身份在 CMD 中运行</span>
+<span class="comment">REM ============================================</span>
+
+echo.
+echo ====== 1. 当前用户名 ======
+whoami
+
+echo.
+echo ====== 2. 账户密码状态 ======
+net user %USERNAME%
+
+echo.
+echo ====== 3. 自动登录注册表 ======
+echo [AutoAdminLogon] 期望值: 1
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon 2>nul
+echo [DefaultUserName] 期望值: 你的用户名
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName 2>nul
+echo [DefaultPassword] 期望值: (空)
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword 2>nul
+
+echo.
+echo ====== 4. 空密码策略 ======
+echo [LimitBlankPasswordUse] 期望值: 0
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse 2>nul
+
+echo.
+echo ====== 5. Windows Hello 策略 ======
+echo [PassportForWork\Enabled] 期望值: 0
+reg query "HKLM\SOFTWARE\Policies\Microsoft\PassportForWork" /v Enabled 2>nul || echo   (未设置 - 可能仍启用)
+echo [AllowSignInOptions] 期望值: 0
+reg query "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Settings\AllowSignInOptions" /v value 2>nul || echo   (未设置)
+
+echo.
+echo ====== 6. PIN 数据目录 ======
+if exist "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc" (
+    echo   [警告] Ngc 目录仍存在! PIN 未彻底清除
+    dir "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc" /a
+) else (
+    echo   [OK] Ngc 目录已删除
+)
+
+echo.
+echo ====== 7. 锁屏与 CAD 策略 ======
+echo [NoLockScreen] 期望值: 1
+reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v NoLockScreen 2>nul || echo   (未设置 - 锁屏可能仍启用)
+echo [DisableCAD] 期望值: 1
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableCAD 2>nul
+
+echo.
+echo ====== 8. PasswordLess 设备策略 (Win11 关键!) ======
+echo [DevicePasswordLessBuildVersion] 期望值: 0 (如果为2则会强制要密码!)
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device" /v DevicePasswordLessBuildVersion 2>nul || echo   (未找到)
+
+echo.
+echo ====== 9. 电源唤醒密码策略 ======
+powercfg /query SCHEME_CURRENT SUB_NONE CONSOLELOCK 2>nul | findstr "Setting"
+
+echo.
+echo ====== 诊断完成 ======
+echo 如有 [警告] 项，请按手册对应步骤修复后重启。
+pause</div>
+
+    <h3>常见隐藏原因（按排查优先级）</h3>
+    <table>
+        <tr><th>优先级</th><th>检查项</th><th>期望值</th><th>修复命令</th></tr>
+        <tr>
+            <td>🔴 1</td>
+            <td><code>DevicePasswordLessBuildVersion</code></td>
+            <td>0</td>
+            <td><code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device" /v DevicePasswordLessBuildVersion /t REG_DWORD /d 0 /f</code></td>
+        </tr>
+        <tr>
+            <td>🔴 2</td>
+            <td>Ngc 目录（PIN 数据）</td>
+            <td>不存在</td>
+            <td><code>rd /s /q "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc"</code></td>
+        </tr>
+        <tr>
+            <td>🟡 3</td>
+            <td><code>LimitBlankPasswordUse</code></td>
+            <td>0</td>
+            <td><code>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f</code></td>
+        </tr>
+        <tr>
+            <td>🟡 4</td>
+            <td><code>AutoAdminLogon</code></td>
+            <td>1</td>
+            <td><code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d "1" /f</code></td>
+        </tr>
+        <tr>
+            <td>🟢 5</td>
+            <td><code>DefaultUserName</code></td>
+            <td>实际用户名</td>
+            <td>确认与 <code>whoami</code> 输出一致</td>
+        </tr>
     </table>
 
     <div class="alert alert-warning">
