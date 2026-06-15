@@ -306,24 +306,90 @@ reg add <span class="string">"HKCU\Software\Microsoft\Windows\CurrentVersion\Con
 </div>
 
 <!-- 2.7 -->
+<div class="section" style="border-left-color: var(--warning);">
+    <h2>2.7 无密码自动登录配置</h2>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>设计原理：</strong>I-Lab 工作站采用"物理在场即认证"模型。<br>
+            用户通过门禁/认证器进入实验室 = 已完成身份验证。<br>
+            工作站无密码 + 每日自动重置 = 零门槛使用 + 无持久化风险。<br>
+            安全边界由<strong>物理管控 + 网络隔离 + NAS 权限 + 每日回滚</strong>保障，而非本机密码。
+        </div>
+    </div>
+
+    <h3>配置命令（管理员权限执行）</h3>
+    <div class="cmd"><span class="comment">REM === 1. 设置账户空密码 ===</span>
+net user Lab-Admin ""
+
+<span class="comment">REM === 2. 允许空密码本地登录（默认被安全策略阻止） ===</span>
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f
+
+<span class="comment">REM === 3. 设置开机自动登录 ===</span>
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d "1" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d "Lab-Admin" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d "" /f
+
+<span class="comment">REM === 4. 禁用锁屏 ===</span>
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v NoLockScreen /t REG_DWORD /d 1 /f
+
+<span class="comment">REM === 5. 禁用 Ctrl+Alt+Del 登录要求 ===</span>
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableCAD /t REG_DWORD /d 1 /f
+
+<span class="comment">REM === 6. 禁用 Windows Hello 提示与自动重启登录 ===</span>
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableAutomaticRestartSignOn /t REG_DWORD /d 1 /f</div>
+
+    <h3>各命令说明</h3>
+    <table>
+        <tr><th>#</th><th>命令</th><th>作用</th><th>为什么需要</th></tr>
+        <tr><td>1</td><td><code>net user Lab-Admin ""</code></td><td>清除账户密码</td><td>确保账户无需输入密码</td></tr>
+        <tr><td>2</td><td><code>LimitBlankPasswordUse = 0</code></td><td>允许空密码登录</td><td>Windows 默认禁止空密码本地登录，必须手动关闭</td></tr>
+        <tr><td>3</td><td><code>AutoAdminLogon = 1</code></td><td>开机自动进桌面</td><td>跳过登录界面，直接进入 Lab-Admin 桌面</td></tr>
+        <tr><td>4</td><td><code>NoLockScreen = 1</code></td><td>禁用锁屏画面</td><td>避免唤醒后需要滑动/点击才能进入</td></tr>
+        <tr><td>5</td><td><code>DisableCAD = 1</code></td><td>禁用 Ctrl+Alt+Del</td><td>取消安全登录屏幕，直接进桌面</td></tr>
+        <tr><td>6</td><td><code>DisableAutomaticRestartSignOn = 1</code></td><td>禁用自动重启登录</td><td>Windows Update 重启后不弹 Hello 设置向导</td></tr>
+    </table>
+
+    <h3>安全边界说明</h3>
+    <table>
+        <tr><th>不靠工作站密码保护</th><th>靠什么保护</th></tr>
+        <tr><td>物理访问控制</td><td>实验室门禁 + YubiKey 认证器领取流程</td></tr>
+        <tr><td>网络安全</td><td>VLAN 隔离用户网段与管理网段，用户无法触及 NAS 管理口</td></tr>
+        <tr><td>数据安全</td><td>NAS 有独立权限控制，用户仅能访问自己的 WS 目录</td></tr>
+        <tr><td>SaaS 服务安全</td><td>各服务通过 YubiKey / SSO 独立认证</td></tr>
+        <tr><td>系统完整性</td><td>每日自动回滚到基线，无法持久化任何恶意操作</td></tr>
+    </table>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div>
+            <strong>注意：</strong>此配置应在 Golden Image 制作时完成（Sysprep 之前）。<br>
+            这样所有克隆的机器都会自动具备无密码自动登录能力，无需逐台设置。
+        </div>
+    </div>
+</div>
+
 <div class="section" style="border-left-color: var(--success);">
-    <h2>2.7 重启 & 验证</h2>
+    <h2>2.8 重启 & 验证</h2>
     <div class="cmd"><span class="comment"># 重启使所有设置生效</span>
 Restart-Computer -Force</div>
 
     <h3>重启后验证清单</h3>
     <ul class="checklist">
+        <li>开机后自动登录到 Lab-Admin 桌面（无需点击/输入）</li>
         <li>计算机名显示为 GMK-WS-TEMPLATE（Settings → System → About）</li>
         <li>时区显示 UTC+8 北京时间</li>
         <li>电源计划：不会自动休眠（Settings → System → Power）</li>
         <li>远程桌面可从其他设备连入</li>
         <li>网卡 WoL 已开启（Device Manager 确认）</li>
         <li>文件扩展名已显示</li>
+        <li>无锁屏画面出现</li>
     </ul>
 
     <div class="alert alert-success">
         <span class="alert-icon">✅</span>
-        <div><strong>Step 2 完成！</strong>系统基础配置就绪，接下来安装 Lab 软件。</div>
+        <div><strong>Step 2 完成！</strong>系统基础配置就绪（含无密码自动登录），接下来安装 Lab 软件。</div>
     </div>
 </div>
 
