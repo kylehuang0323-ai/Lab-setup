@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 5-7: 清理·封装·备份 - I-Lab Golden Image</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-light: #CFE4FA;
+            --success: #107C10;
+            --success-light: #DFF6DD;
+            --warning: #F7630C;
+            --warning-light: #FFF4CE;
+            --danger: #D13438;
+            --danger-light: #FDE7E9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, 'Microsoft YaHei', sans-serif;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.7;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #D13438, #a02020);
+            color: white;
+            padding: 36px 40px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(209,52,56,0.25);
+        }
+        .header h1 { font-size: 1.7em; margin-bottom: 6px; }
+        .header .subtitle { opacity: 0.9; }
+        .header .meta { margin-top: 10px; font-size: 0.85em; opacity: 0.75; }
+        .nav-links {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+        }
+        .nav-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .nav-links a.active { font-weight: 700; text-decoration: underline; }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 26px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .section.danger { border-left-color: var(--danger); }
+        .section.success { border-left-color: var(--success); }
+        .section.warning { border-left-color: var(--warning); }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 14px;
+            font-size: 1.25em;
+        }
+        .section.danger h2 { color: var(--danger); }
+        .section.success h2 { color: var(--success); }
+        .section h3 {
+            color: #444;
+            margin: 16px 0 8px;
+            font-size: 1em;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 4px;
+        }
+        .cmd {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.84em;
+            overflow-x: auto;
+            margin: 10px 0 14px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .cmd .comment { color: #6a9955; }
+        .cmd .highlight { color: #569cd6; }
+        .cmd .string { color: #ce9178; }
+        .cmd .warn { color: #f7630c; }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin: 12px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .alert-info { background: var(--primary-light); border: 1px solid var(--primary); }
+        .alert-warning { background: var(--warning-light); border: 1px solid var(--warning); }
+        .alert-success { background: var(--success-light); border: 1px solid var(--success); }
+        .alert-danger { background: var(--danger-light); border: 1px solid var(--danger); }
+        .alert-icon { font-size: 1.2em; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+        .checklist li {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #ddd;
+        }
+        .checklist li::before { content: '☐ '; }
+        .big-warning {
+            background: var(--danger-light);
+            border: 3px solid var(--danger);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .big-warning h3 {
+            color: var(--danger);
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            border: none;
+        }
+        .big-warning p { font-size: 1.05em; }
+        .step-divider {
+            text-align: center;
+            margin: 40px 0 20px;
+            position: relative;
+        }
+        .step-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #ddd;
+        }
+        .step-divider span {
+            background: #fafafa;
+            padding: 0 20px;
+            position: relative;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.88em;
+        }
+        th { background: var(--primary); color: white; padding: 10px 12px; text-align: left; }
+        td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+        .step-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-nav a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: var(--primary-light);
+        }
+        .step-nav a:hover { background: var(--primary); color: white; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>🔒 Step 5-7: 清理 · 封装 · 备份</h1>
+    <div class="subtitle">最终清理 → Sysprep 封装 → Clonezilla 备份到 NAS</div>
+    <div class="meta">预计耗时：55 分钟 | ⚠️ 此步骤不可逆，请确认前 4 步全部完成 | 操作后系统关机</div>
+</div>
+
+<div class="nav-links">
+    📍 导航：
+    <a href="index.html">NAS 配置</a>
+    <a href="deployment-plan.html">部署方案</a>
+    <a href="driver-install.html">Step 1: 驱动</a>
+    <a href="system-config.html">Step 2: 系统配置</a>
+    <a href="software-install.html">Step 3: 软件安装</a>
+    <a href="nas-mapping.html">Step 4: NAS映射</a>
+    <a href="sysprep-backup.html" class="active">Step 5-7: 封装备份</a>
+</div>
+
+<div class="big-warning">
+    <h3>⛔ 重要提醒：执行前必读</h3>
+    <p>Step 6 (Sysprep) 执行后系统会<strong>关机</strong>，且<strong>绝对不能再开机进入 Windows</strong>。<br>
+    必须直接用 Clonezilla USB 启动来采集镜像。<br>
+    如果误操作开机了，Golden Image 作废，需从 Step 1 重新开始。</p>
+</div>
+
+<!-- ===== STEP 5 ===== -->
+<div class="step-divider"><span>📋 Step 5: 最终清理 & 验证（15 min）</span></div>
+
+<div class="section">
+    <h2>5.1 最终验证 Checklist</h2>
+    <p><strong>在执行清理前，最后确认所有配置正确：</strong></p>
+    <ul class="checklist">
+        <li>Device Manager 零感叹号（所有驱动正常）</li>
+        <li>所有软件可正常打开（VS Code, Chrome, Python, Arduino IDE）</li>
+        <li>python --version / git --version / node --version 正常</li>
+        <li>NAS Z: 盘可访问，可读写文件</li>
+        <li>Active Backup Agent 显示已连接</li>
+        <li>注销再登录后 NAS 自动映射</li>
+        <li>公共桌面有"数据保存须知"文件和 NAS 快捷方式</li>
+        <li>远程桌面可从其他设备连入</li>
+        <li>分辨率、声音、USB 口正常</li>
+        <li>时区 UTC+8、电源不休眠</li>
+    </ul>
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div>如果有<strong>任何一项</strong>未通过，先回到对应步骤修复。Sysprep 后无法修改！</div>
+    </div>
+</div>
+
+<div class="section">
+    <h2>5.2 清理临时文件</h2>
+    <p>减小镜像体积，清除不必要的缓存：</p>
+    <div class="cmd"><span class="comment"># ===== 清理 Windows 组件存储（释放 1-3GB）=====</span>
+Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase
+
+<span class="comment"># ===== 清理临时文件 =====</span>
+Remove-Item -Path <span class="string">"$env:TEMP\*"</span> -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path <span class="string">"C:\Windows\Temp\*"</span> -Recurse -Force -ErrorAction SilentlyContinue
+
+<span class="comment"># ===== 清空回收站 =====</span>
+Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+
+<span class="comment"># ===== 清理 Windows Update 缓存 =====</span>
+Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+Remove-Item -Path <span class="string">"C:\Windows\SoftwareDistribution\Download\*"</span> -Recurse -Force -ErrorAction SilentlyContinue
+Start-Service -Name wuauserv
+
+<span class="comment"># ===== 清理浏览器缓存 =====</span>
+Remove-Item -Path <span class="string">"$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Cache\*"</span> -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path <span class="string">"$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Cache\*"</span> -Recurse -Force -ErrorAction SilentlyContinue
+
+<span class="comment"># ===== 清理 pip 缓存 =====</span>
+pip cache purge 2>$null
+
+<span class="comment"># ===== 清理 npm 缓存 =====</span>
+npm cache clean --force 2>$null
+
+<span class="comment"># ===== 运行磁盘清理（GUI 方式，全选所有项目）=====</span>
+<span class="comment"># cleanmgr /d C /sageset:1   ← 第一次设置：全部勾选</span>
+<span class="comment"># cleanmgr /d C /sagerun:1   ← 之后运行</span>
+cleanmgr /d C /verylowdisk</div>
+</div>
+
+<div class="section">
+    <h2>5.3 检查清理效果</h2>
+    <div class="cmd"><span class="comment"># 查看 C: 盘使用情况</span>
+Get-PSDrive C | Select-Object @{N=<span class="string">'Used(GB)'</span>;E={[math]::Round($_.Used/1GB,1)}}, @{N=<span class="string">'Free(GB)'</span>;E={[math]::Round($_.Free/1GB,1)}}
+
+<span class="comment"># 目标：系统+所有软件应在 30-50GB 左右</span>
+<span class="comment"># 如果超过 60GB，检查是否有大文件未清理</span></div>
+</div>
+
+<!-- ===== STEP 6 ===== -->
+<div class="step-divider"><span>🔒 Step 6: Sysprep 封装（10 min）</span></div>
+
+<div class="section danger">
+    <h2>6.1 什么是 Sysprep？</h2>
+    <table>
+        <tr><th>作用</th><th>说明</th></tr>
+        <tr><td>移除机器 SID</td><td>确保克隆后每台机器有唯一身份，不会网络冲突</td></tr>
+        <tr><td>移除硬件绑定</td><td>驱动会在首次启动时重新检测安装</td></tr>
+        <tr><td>重置激活状态</td><td>Windows 会在首次启动时重新激活</td></tr>
+        <tr><td>进入 OOBE</td><td>下次启动时显示初始设置向导（设机器名等）</td></tr>
+    </table>
+</div>
+
+<div class="section danger">
+    <h2>6.2 检查 Sysprep 兼容性</h2>
+    <div class="cmd"><span class="comment"># 某些应用（特别是 Windows Store 应用）可能阻止 Sysprep</span>
+<span class="comment"># 先检查潜在问题：</span>
+
+<span class="comment"># 列出可能有问题的 Appx 包</span>
+Get-AppxPackage | Where-Object {$_.IsFramework -eq $false -and $_.SignatureKind -ne "System"} | Select-Object Name, Version | Format-Table
+
+<span class="comment"># 如果 Sysprep 失败，通常需要移除有问题的应用：</span>
+<span class="comment"># Get-AppxPackage *应用名* | Remove-AppxPackage</span>
+<span class="comment"># Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like "*应用名*"} | Remove-AppxProvisionedPackage -Online</span></div>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>常见需要移除的应用：</strong>Copilot, Xbox Game Bar, Microsoft Teams (consumer)。
+        企业/学校版 Store 应用通常没问题。</div>
+    </div>
+</div>
+
+<div class="section danger">
+    <h2>6.3 执行 Sysprep</h2>
+
+    <div class="alert alert-danger">
+        <span class="alert-icon">🚨</span>
+        <div><strong>最后确认：</strong>
+        <ul style="margin-top:5px;">
+            <li>Step 1-5 全部完成？</li>
+            <li>确认不需要再装任何软件？</li>
+            <li>Clonezilla USB 已准备好？</li>
+            <li>执行后系统会<strong>关机</strong>，不能再正常开机！</li>
+        </ul></div>
+    </div>
+
+    <h3>方法 A：命令行执行（推荐）</h3>
+    <div class="cmd"><span class="comment"># 以管理员权限运行：</span>
+C:\Windows\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown
+
+<span class="comment"># 参数说明：</span>
+<span class="comment"># /generalize  → 移除硬件特定信息（SID、驱动绑定等）</span>
+<span class="comment"># /oobe        → 下次启动进入初始设置界面</span>
+<span class="comment"># /shutdown    → 完成后关机（不是重启！）</span></div>
+
+    <h3>方法 B：图形界面执行</h3>
+    <div class="cmd"><span class="comment"># 1. 打开：C:\Windows\System32\Sysprep\sysprep.exe</span>
+<span class="comment"># 2. System Cleanup Action: 选择 "Enter System Out-of-Box Experience (OOBE)"</span>
+<span class="comment"># 3. 勾选 ☑ Generalize</span>
+<span class="comment"># 4. Shutdown Options: 选择 "Shutdown"</span>
+<span class="comment"># 5. 点击 OK</span></div>
+
+    <h3>等待过程</h3>
+    <div class="cmd"><span class="comment"># Sysprep 运行过程：</span>
+<span class="comment"># • 屏幕显示 "Sysprep is working on your request..."</span>
+<span class="comment"># • 持续约 2-5 分钟</span>
+<span class="comment"># • 完成后系统自动关机</span>
+<span class="comment"># • 屏幕变黑 = 完成</span></div>
+
+    <div class="big-warning">
+        <h3>⛔ 关机后的操作</h3>
+        <p>1. <strong>不要按电源键！</strong><br>
+        2. 插入 <strong>Clonezilla USB</strong><br>
+        3. 然后进入 Step 7</p>
+    </div>
+</div>
+
+<div class="section danger">
+    <h2>6.4 Sysprep 失败处理</h2>
+    <div class="cmd"><span class="comment"># 如果 Sysprep 报错，查看日志：</span>
+Get-Content <span class="string">"C:\Windows\System32\Sysprep\Panther\setuperr.log"</span> -Tail 30
+Get-Content <span class="string">"C:\Windows\System32\Sysprep\Panther\setupact.log"</span> -Tail 50
+
+<span class="comment"># 常见错误及解决：</span>
+<span class="comment">#</span>
+<span class="comment"># 错误：SYSPRP Package ... was installed for a user, but not provisioned for all users</span>
+<span class="comment"># 解决：移除该应用</span>
+<span class="comment"># Get-AppxPackage *包名* | Remove-AppxPackage</span>
+<span class="comment"># Get-AppxProvisionedPackage -Online | Where {$_.PackageName -like "*包名*"} | Remove-AppxProvisionedPackage -Online</span>
+<span class="comment">#</span>
+<span class="comment"># 错误：SYSPRP Failed to remove apps for the current user</span>
+<span class="comment"># 解决：</span>
+<span class="comment"># reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.XXX_8wekyb3d8bbwe" /f</span>
+<span class="comment">#</span>
+<span class="comment"># 错误：Sysprep count exceeded (已运行过太多次)</span>
+<span class="comment"># 解决：重新安装 Windows（从 Step 1 重来）</span></div>
+</div>
+
+<!-- ===== STEP 7 ===== -->
+<div class="step-divider"><span>💾 Step 7: Clonezilla 备份到 NAS（30 min）</span></div>
+
+<div class="section success">
+    <h2>7.1 准备工作</h2>
+    <div class="cmd"><span class="comment"># 你需要：</span>
+<span class="comment"># ✅ Clonezilla Live USB（之前用 Rufus 制作）</span>
+<span class="comment">#    下载地址：https://clonezilla.org/downloads.php</span>
+<span class="comment">#    选择：stable → amd64 → iso → Rufus 写入 U 盘</span>
+<span class="comment"># ✅ NAS 上有 GoldenImages 共享文件夹且可写</span>
+<span class="comment"># ✅ GMK 工作站已关机（Sysprep 完成后的状态）</span>
+<span class="comment"># ✅ 网线已连接（Clonezilla 需要网络访问 NAS）</span></div>
+</div>
+
+<div class="section success">
+    <h2>7.2 从 Clonezilla USB 启动</h2>
+    <div class="cmd"><span class="comment"># 1. 确保 Clonezilla USB 已插入</span>
+<span class="comment"># 2. 按电源键开机</span>
+<span class="comment"># 3. 立即按 DEL 或 F2 进入 BIOS</span>
+<span class="comment"># 4. Boot → Boot Option #1 → 选择 USB 设备</span>
+<span class="comment"># 5. Save & Exit → 从 USB 启动</span>
+<span class="comment"># 6. 出现 Clonezilla 启动菜单</span></div>
+</div>
+
+<div class="section success">
+    <h2>7.3 Clonezilla 操作步骤（逐步）</h2>
+
+    <h3>第一阶段：启动设置</h3>
+    <div class="cmd"><span class="comment"># [Screen 1] Clonezilla 启动菜单</span>
+<span class="comment"># → 选择: Clonezilla live (VGA 800x600)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 2] 语言选择</span>
+<span class="comment"># → 选择: en_US.UTF-8 English</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 3] 键盘布局</span>
+<span class="comment"># → 选择: Keep default keyboard layout</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 4] 启动 Clonezilla</span>
+<span class="comment"># → 选择: Start_Clonezilla</span>
+<span class="comment"># → 回车</span></div>
+
+    <h3>第二阶段：连接 NAS</h3>
+    <div class="cmd"><span class="comment"># [Screen 5] 模式选择</span>
+<span class="comment"># → 选择: device-image  (制作/恢复整机镜像)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 6] 镜像存储位置</span>
+<span class="comment"># → 选择: samba_server  (SMB/CIFS 网络共享)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 7] 网络配置</span>
+<span class="comment"># → 选择: dhcp  (自动获取 IP)</span>
+<span class="comment"># → 回车</span>
+<span class="comment"># → 等待网络连接成功（应显示获得 192.168.0.x 地址）</span>
+
+<span class="comment"># [Screen 8] SMB 协议版本</span>
+<span class="comment"># → 选择: default  (自动协商)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 9] NAS 服务器地址</span>
+<span class="comment"># → 输入: <span class="warn">192.168.0.81</span></span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 10] 域/工作组</span>
+<span class="comment"># → 输入: WORKGROUP  (或留空直接回车)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 11] NAS 用户名</span>
+<span class="comment"># → 输入: <span class="warn">labuser</span>  (或你的 NAS 管理员账号)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 12] 共享目录路径</span>
+<span class="comment"># → 输入: <span class="warn">/GoldenImages</span></span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 13] NAS 密码</span>
+<span class="comment"># → 输入密码（不显示字符，盲打）</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># → 如果连接成功，会显示挂载信息</span>
+<span class="comment"># → 按 Enter 继续</span></div>
+
+    <h3>第三阶段：执行备份</h3>
+    <div class="cmd"><span class="comment"># [Screen 14] 操作模式</span>
+<span class="comment"># → 选择: Beginner  (初学者模式，使用默认选项)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 15] 操作类型</span>
+<span class="comment"># → 选择: savedisk  (将整个磁盘保存为镜像)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 16] 镜像命名</span>
+<span class="comment"># → 输入: <span class="warn">ILab-GoldenImage-v1.0-20260615</span></span>
+<span class="comment"># → 回车</span>
+<span class="comment"># （命名规则：项目-类型-版本号-日期）</span>
+
+<span class="comment"># [Screen 17] 选择源磁盘</span>
+<span class="comment"># → 用空格键选中: nvme0n1  (GMK 的 NVMe SSD，约 1.9TB)</span>
+<span class="comment"># → 回车</span>
+<span class="comment"># （注意不要选 USB 设备！通常是 sda/sdb）</span>
+
+<span class="comment"># [Screen 18] 压缩方式</span>
+<span class="comment"># → 选择: -z1p  (gzip 并行压缩，速度快)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 19] 文件系统检查</span>
+<span class="comment"># → 选择: -fsck-src-part-y  (自动修复文件系统错误)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 20] 检查镜像完整性</span>
+<span class="comment"># → 选择: Yes, check the saved image  (建议选是)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 21] 加密</span>
+<span class="comment"># → 选择: -senc  (不加密，lab 内部使用)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 22] 完成后操作</span>
+<span class="comment"># → 选择: -p poweroff  (备份完自动关机)</span>
+<span class="comment"># → 回车</span>
+
+<span class="comment"># [Screen 23] 最终确认</span>
+<span class="comment"># → 输入: y</span>
+<span class="comment"># → 回车</span>
+<span class="comment"># → 可能再次确认: y</span></div>
+
+    <h3>第四阶段：等待</h3>
+    <div class="cmd"><span class="comment"># 备份进行中...</span>
+<span class="comment"># 屏幕会显示进度百分比和传输速度</span>
+<span class="comment"># 千兆网络下：~100MB/s</span>
+<span class="comment"># 假设系统+软件约 40GB 实际数据 → 约 7-10 分钟传输</span>
+<span class="comment"># 加上压缩和校验 → 总共约 15-25 分钟</span>
+<span class="comment">#</span>
+<span class="comment"># 完成后自动关机（如果选了 poweroff）</span>
+<span class="comment"># 关机后拔出 Clonezilla USB</span></div>
+</div>
+
+<div class="section success">
+    <h2>7.4 验证备份成功</h2>
+    <div class="cmd"><span class="comment"># 在另一台电脑上验证 NAS 中的镜像：</span>
+<span class="comment"># 1. 打开资源管理器 → \\192.168.0.81\GoldenImages\</span>
+<span class="comment"># 2. 应该看到文件夹: ILab-GoldenImage-v1.0-20260615</span>
+<span class="comment"># 3. 文件夹内应包含：</span>
+<span class="comment">#    • clonezilla-img           (版本信息)</span>
+<span class="comment">#    • parts                    (分区表信息)</span>
+<span class="comment">#    • disk-nvme0n1-pt.sf       (分区表备份)</span>
+<span class="comment">#    • nvme0n1p1.img.gz         (EFI 分区)</span>
+<span class="comment">#    • nvme0n1p2.img.gz         (MSR 分区)</span>
+<span class="comment">#    • nvme0n1p3.img.gz         (Windows 系统分区)</span>
+<span class="comment">#    • nvme0n1p4.img.gz         (恢复分区)</span>
+<span class="comment">#    • Info-dmi.txt             (硬件信息)</span>
+<span class="comment">#    • Info-lshw.txt            (详细硬件清单)</span>
+<span class="comment">#</span>
+<span class="comment"># 4. 检查总大小：应约 15-40GB（取决于安装的软件量）</span>
+<span class="comment"># 5. 如果文件夹存在且大小合理 = 备份成功 ✅</span></div>
+</div>
+
+<div class="section success">
+    <h2>7.5 备份完成！下一步</h2>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">🎉</span>
+        <div><strong>恭喜！Golden Image 制作完成！</strong><br>
+        你现在拥有一个标准化的系统镜像，可以批量部署到其余 11 台 GMK 工作站。</div>
+    </div>
+
+    <h3>接下来的工作</h3>
+    <table>
+        <tr><th>任务</th><th>说明</th><th>预计时间</th></tr>
+        <tr><td>批量还原到 11 台</td><td>Clonezilla restoredisk，3 个 U 盘并行</td><td>2 小时</td></tr>
+        <tr><td>每台 OOBE 设置</td><td>设机器名 GMK-WS01~12，运行 post-deploy 脚本</td><td>每台 5 分钟</td></tr>
+        <tr><td>安装回滚软件</td><td>Reboot Restore Rx Pro，设置基线</td><td>每台 10 分钟</td></tr>
+        <tr><td>Active Backup 注册</td><td>NAS 上确认所有设备在线</td><td>15 分钟</td></tr>
+    </table>
+
+    <h3>还原命令提示（在其他机器上恢复镜像）</h3>
+    <div class="cmd"><span class="comment"># Clonezilla 还原时选择：</span>
+<span class="comment"># device-image → samba_server → 192.168.0.81 → /GoldenImages</span>
+<span class="comment"># → Beginner → restoredisk</span>
+<span class="comment"># → 选择 ILab-GoldenImage-v1.0-20260615</span>
+<span class="comment"># → 选择目标磁盘 nvme0n1</span>
+<span class="comment"># → 确认覆盖 → 等待还原</span>
+<span class="comment">#</span>
+<span class="comment"># 还原后首次启动进入 OOBE：</span>
+<span class="comment"># • 地区：China</span>
+<span class="comment"># • 键盘：US</span>
+<span class="comment"># • 网络：跳过（Shift+F10 → oobe\bypassnro）或直接连</span>
+<span class="comment"># • 账户：本地账户 → Lab-Admin</span>
+<span class="comment"># • 密码：设置统一管理员密码</span></div>
+</div>
+
+<!-- Troubleshooting -->
+<div class="section warning">
+    <h2>🔧 常见问题排查</h2>
+    <table>
+        <tr><th>问题</th><th>原因</th><th>解决</th></tr>
+        <tr>
+            <td>Sysprep 失败</td>
+            <td>Store 应用阻止</td>
+            <td>查看 <code>Panther\setuperr.log</code>，移除问题应用</td>
+        </tr>
+        <tr>
+            <td>Clonezilla 连不上 NAS</td>
+            <td>SMB 版本/密码错误</td>
+            <td>NAS 端临时启用 SMB1，或重新输入密码</td>
+        </tr>
+        <tr>
+            <td>Clonezilla 找不到 NVMe 盘</td>
+            <td>驱动缺失</td>
+            <td>使用最新版 Clonezilla（2024+），内含 NVMe 驱动</td>
+        </tr>
+        <tr>
+            <td>备份速度很慢（< 30MB/s）</td>
+            <td>网络瓶颈</td>
+            <td>确认用有线连接；检查网线是否千兆</td>
+        </tr>
+        <tr>
+            <td>还原后无法启动</td>
+            <td>UEFI/Legacy 不匹配</td>
+            <td>确保 BIOS 启动模式为 UEFI（不是 Legacy/CSM）</td>
+        </tr>
+        <tr>
+            <td>误开机进了 OOBE</td>
+            <td>忘记用 Clonezilla</td>
+            <td>镜像作废，需重新从 Step 1 开始</td>
+        </tr>
+    </table>
+</div>
+
+<div class="step-nav">
+    <a href="nas-mapping.html">← Step 4: NAS 映射</a>
+    <a href="deployment-plan.html">回到部署方案总览 →</a>
+</div>
+
+<div class="footer">
+    I-Lab Golden Image Guide | Step 5-7: Cleanup, Sysprep & Backup | Updated: 2026-06-15<br>
+    ⚠️ Sysprep 后不可逆 — 确保所有步骤验证通过后再执行
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 3: 软件安装 - I-Lab Golden Image</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-light: #CFE4FA;
+            --success: #107C10;
+            --success-light: #DFF6DD;
+            --warning: #F7630C;
+            --warning-light: #FFF4CE;
+            --danger: #D13438;
+            --danger-light: #FDE7E9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, 'Microsoft YaHei', sans-serif;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.7;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #0078D4, #005a9e);
+            color: white;
+            padding: 36px 40px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,120,212,0.25);
+        }
+        .header h1 { font-size: 1.7em; margin-bottom: 6px; }
+        .header .subtitle { opacity: 0.9; }
+        .header .meta { margin-top: 10px; font-size: 0.85em; opacity: 0.75; }
+        .nav-links {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+        }
+        .nav-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .nav-links a.active { font-weight: 700; text-decoration: underline; }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 26px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 14px;
+            font-size: 1.25em;
+        }
+        .section h3 {
+            color: #444;
+            margin: 16px 0 8px;
+            font-size: 1em;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 4px;
+        }
+        .cmd {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.84em;
+            overflow-x: auto;
+            margin: 10px 0 14px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .cmd .comment { color: #6a9955; }
+        .cmd .highlight { color: #569cd6; }
+        .cmd .string { color: #ce9178; }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin: 12px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .alert-info { background: var(--primary-light); border: 1px solid var(--primary); }
+        .alert-warning { background: var(--warning-light); border: 1px solid var(--warning); }
+        .alert-success { background: var(--success-light); border: 1px solid var(--success); }
+        .alert-danger { background: var(--danger-light); border: 1px solid var(--danger); }
+        .alert-icon { font-size: 1.2em; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+        .checklist li {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #ddd;
+        }
+        .checklist li::before { content: '☐ '; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.88em;
+        }
+        th { background: var(--primary); color: white; padding: 10px 12px; text-align: left; }
+        td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+        tr:hover td { background: #f9fbff; }
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .tool-item {
+            padding: 10px 14px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        .tool-item strong { color: var(--primary); }
+        .step-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-nav a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: var(--primary-light);
+        }
+        .step-nav a:hover { background: var(--primary); color: white; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>📦 Step 3: Lab 软件安装</h1>
+    <div class="subtitle">winget 批量安装 · VS Code 扩展 · Python 环境 · Active Backup Agent</div>
+    <div class="meta">预计耗时：60 分钟 | 前置条件：Step 2 系统配置完成并重启 | 需要网络连接</div>
+</div>
+
+<div class="nav-links">
+    📍 导航：
+    <a href="index.html">NAS 配置</a>
+    <a href="deployment-plan.html">部署方案</a>
+    <a href="driver-install.html">Step 1: 驱动</a>
+    <a href="system-config.html">Step 2: 系统配置</a>
+    <a href="software-install.html" class="active">Step 3: 软件安装</a>
+    <a href="nas-mapping.html">Step 4: NAS映射</a>
+    <a href="sysprep-backup.html">Step 5-7: 封装备份</a>
+</div>
+
+<!-- 3.1 -->
+<div class="section">
+    <h2>3.1 软件安装总览</h2>
+
+    <div class="tool-grid">
+        <div class="tool-item"><strong>VS Code</strong><br>主力代码编辑器</div>
+        <div class="tool-item"><strong>Python 3.12</strong><br>AI/ML 开发必备</div>
+        <div class="tool-item"><strong>Git</strong><br>版本控制</div>
+        <div class="tool-item"><strong>Node.js LTS</strong><br>Web 开发运行时</div>
+        <div class="tool-item"><strong>Miniconda</strong><br>Python 环境管理</div>
+        <div class="tool-item"><strong>Chrome</strong><br>主力浏览器</div>
+        <div class="tool-item"><strong>7-Zip</strong><br>压缩解压</div>
+        <div class="tool-item"><strong>Notepad++</strong><br>轻量文本编辑</div>
+        <div class="tool-item"><strong>PuTTY</strong><br>SSH/串口连接</div>
+        <div class="tool-item"><strong>Wireshark</strong><br>网络抓包分析</div>
+        <div class="tool-item"><strong>Arduino IDE</strong><br>嵌入式开发</div>
+        <div class="tool-item"><strong>RustDesk</strong><br>远程桌面管理</div>
+    </div>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>安装策略：</strong>使用 Windows 自带的 <code>winget</code> 包管理器批量安装，
+        一条命令搞定。比逐个下载安装包快 10 倍。</div>
+    </div>
+</div>
+
+<!-- 3.2 -->
+<div class="section">
+    <h2>3.2 winget 批量安装（推荐）</h2>
+    <p>打开 <strong>PowerShell (Admin)</strong>，逐块复制粘贴执行：</p>
+
+    <h3>开发工具</h3>
+    <div class="cmd"><span class="comment"># VS Code - 代码编辑器</span>
+winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements
+
+<span class="comment"># Python 3.12</span>
+winget install -e --id Python.Python.3.12
+
+<span class="comment"># Git for Windows</span>
+winget install -e --id Git.Git
+
+<span class="comment"># Node.js LTS</span>
+winget install -e --id OpenJS.NodeJS.LTS
+
+<span class="comment"># Miniconda（Python 虚拟环境管理）</span>
+winget install -e --id Anaconda.Miniconda3</div>
+
+    <h3>浏览器</h3>
+    <div class="cmd"><span class="comment"># Google Chrome</span>
+winget install -e --id Google.Chrome</div>
+
+    <h3>系统工具</h3>
+    <div class="cmd"><span class="comment"># 7-Zip 压缩工具</span>
+winget install -e --id 7zip.7zip
+
+<span class="comment"># Notepad++ 文本编辑器</span>
+winget install -e --id Notepad++.Notepad++
+
+<span class="comment"># PuTTY（SSH + 串口终端）</span>
+winget install -e --id PuTTY.PuTTY
+
+<span class="comment"># Wireshark（网络分析）</span>
+winget install -e --id WiresharkFoundation.Wireshark</div>
+
+    <h3>嵌入式 & IoT</h3>
+    <div class="cmd"><span class="comment"># Arduino IDE 2.x</span>
+winget install -e --id ArduinoSA.IDE.stable</div>
+
+    <h3>远程管理</h3>
+    <div class="cmd"><span class="comment"># RustDesk（开源远程桌面，管理员远程维护用）</span>
+winget install -e --id RustDesk.RustDesk</div>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>注意：</strong>winget 安装过程中可能会弹出 UAC 提示，点"是"继续。
+        部分软件安装后需要<strong>重新打开 PowerShell</strong> 才能在 PATH 中找到。</div>
+    </div>
+</div>
+
+<!-- 3.3 -->
+<div class="section">
+    <h2>3.3 一键安装脚本（保存到 NAS 供复用）</h2>
+    <p>将所有安装命令合并为一个脚本，未来重建 Golden Image 时直接运行：</p>
+    <div class="cmd"><span class="comment"># 保存为 \\192.168.0.81\Software\Scripts\install-lab-tools.ps1</span>
+<span class="comment"># 或保存到本地 C:\Scripts\install-lab-tools.ps1</span>
+
+<span class="highlight">$tools</span> = @(
+    <span class="string">"Microsoft.VisualStudioCode"</span>,
+    <span class="string">"Python.Python.3.12"</span>,
+    <span class="string">"Git.Git"</span>,
+    <span class="string">"OpenJS.NodeJS.LTS"</span>,
+    <span class="string">"Anaconda.Miniconda3"</span>,
+    <span class="string">"Google.Chrome"</span>,
+    <span class="string">"7zip.7zip"</span>,
+    <span class="string">"Notepad++.Notepad++"</span>,
+    <span class="string">"PuTTY.PuTTY"</span>,
+    <span class="string">"WiresharkFoundation.Wireshark"</span>,
+    <span class="string">"ArduinoSA.IDE.stable"</span>,
+    <span class="string">"RustDesk.RustDesk"</span>
+)
+
+Write-Host "=== I-Lab Software Installation ===" -ForegroundColor Cyan
+Write-Host "Total packages: $($tools.Count)" -ForegroundColor Cyan
+Write-Host ""
+
+<span class="highlight">$success</span> = 0
+<span class="highlight">$failed</span> = @()
+
+<span class="highlight">foreach</span> ($tool <span class="highlight">in</span> $tools) {
+    Write-Host "[Installing] $tool ..." -ForegroundColor Yellow
+    winget install -e --id $tool --accept-source-agreements --accept-package-agreements --silent 2>&1 | Out-Null
+    <span class="highlight">if</span> ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) {
+        Write-Host "  [OK] $tool" -ForegroundColor Green
+        $success++
+    } <span class="highlight">else</span> {
+        Write-Host "  [FAIL] $tool (exit: $LASTEXITCODE)" -ForegroundColor Red
+        $failed += $tool
+    }
+}
+
+Write-Host ""
+Write-Host "=== Results ===" -ForegroundColor Cyan
+Write-Host "Success: $success / $($tools.Count)" -ForegroundColor Green
+<span class="highlight">if</span> ($failed.Count -gt 0) {
+    Write-Host "Failed:" -ForegroundColor Red
+    $failed | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+}
+Write-Host ""
+Write-Host "Done! Please restart PowerShell to update PATH." -ForegroundColor Yellow</div>
+</div>
+
+<!-- 3.4 -->
+<div class="section">
+    <h2>3.4 VS Code 扩展预配置</h2>
+    <p>安装 VS Code 后，<strong>重新打开 PowerShell</strong>（让 PATH 生效），然后安装扩展：</p>
+    <div class="cmd"><span class="comment"># 关闭并重新打开 PowerShell (Admin)，然后执行：</span>
+
+<span class="comment"># Python 支持</span>
+code --install-extension ms-python.python
+code --install-extension ms-python.vscode-pylance
+
+<span class="comment"># C/C++（嵌入式开发）</span>
+code --install-extension ms-vscode.cpptools
+
+<span class="comment"># 中文语言包</span>
+code --install-extension ms-ceintl.vscode-language-pack-zh-hans
+
+<span class="comment"># 代码格式化</span>
+code --install-extension esbenp.prettier-vscode
+
+<span class="comment"># 远程 SSH（连接其他设备）</span>
+code --install-extension ms-vscode-remote.remote-ssh
+
+<span class="comment"># GitHub Copilot（AI 辅助编程）</span>
+code --install-extension GitHub.copilot
+
+<span class="comment"># Arduino 支持</span>
+code --install-extension vsciot-vscode.vscode-arduino
+
+<span class="comment"># Jupyter Notebook</span>
+code --install-extension ms-toolsai.jupyter</div>
+</div>
+
+<!-- 3.5 -->
+<div class="section">
+    <h2>3.5 Python 环境验证 & 预装库</h2>
+    <div class="cmd"><span class="comment"># 验证 Python 安装</span>
+python --version
+<span class="comment"># 预期输出：Python 3.12.x</span>
+
+pip --version
+<span class="comment"># 预期输出：pip 24.x from ...</span>
+
+<span class="comment"># 升级 pip</span>
+python -m pip install --upgrade pip
+
+<span class="comment"># 预装常用数据科学库</span>
+pip install numpy pandas matplotlib jupyter scikit-learn
+
+<span class="comment"># 预装 AI/LLM 相关库（可选，增加 ~3GB 镜像大小）</span>
+<span class="comment"># pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu</span>
+<span class="comment"># pip install transformers openai langchain</span>
+
+<span class="comment"># 验证</span>
+python -c "import numpy; import pandas; print('NumPy:', numpy.__version__); print('Pandas:', pandas.__version__)"</div>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>关于 PyTorch + AMD GPU：</strong><br>
+        AMD Strix Halo 的 ROCm 支持还在早期阶段。如果需要 GPU 加速推理，
+        建议先用 CPU 版本的 PyTorch，后续 AMD 官方更新 ROCm 驱动后再升级。</div>
+    </div>
+</div>
+
+<!-- 3.6 -->
+<div class="section">
+    <h2>3.6 安装 Synology Active Backup Agent</h2>
+    <p>这是 NAS 整机备份的客户端，必须在 Golden Image 中预装。</p>
+    <div class="cmd"><span class="comment"># 方法一：浏览器下载</span>
+<span class="comment"># 1. 打开 Chrome，访问: https://192.168.0.81:5001</span>
+<span class="comment"># 2. 登录 NAS DSM 管理界面</span>
+<span class="comment"># 3. 打开 Active Backup for Business 套件</span>
+<span class="comment"># 4. 点击 "PC" 选项卡 → "Add Device" → 下载 Windows Agent</span>
+<span class="comment"># 5. 运行安装程序</span>
+
+<span class="comment"># 方法二：如果 Agent 已放在 NAS 共享目录</span>
+<span class="comment"># 从 NAS 复制安装包到本地运行：</span>
+Copy-Item <span class="string">"\\192.168.0.81\Software\Agents\Synology Active Backup for Business Agent-x64.msi"</span> -Destination <span class="string">"$env:TEMP\"</span>
+Start-Process msiexec.exe -ArgumentList <span class="string">"/i `"$env:TEMP\Synology Active Backup for Business Agent-x64.msi`" /quiet"</span> -Wait</div>
+
+    <h3>Agent 安装后配置</h3>
+    <div class="cmd"><span class="comment"># Agent 安装完后会弹出配置窗口：</span>
+<span class="comment"># 1. Server address: 192.168.0.81</span>
+<span class="comment"># 2. Username: 你的 NAS 管理员账号</span>
+<span class="comment"># 3. Password: NAS 密码</span>
+<span class="comment"># 4. 点 Connect</span>
+<span class="comment"># 5. 成功后在 NAS → Active Backup 界面能看到此设备</span>
+<span class="comment">#</span>
+<span class="comment"># ⚠️ 注意：Sysprep 后此配置会保留，</span>
+<span class="comment"># 但克隆到新机器后 Agent 会以新 SID 重新注册。</span>
+<span class="comment"># NAS 上可能出现重复设备，手动删除旧的即可。</span></div>
+</div>
+
+<!-- 3.7 -->
+<div class="section">
+    <h2>3.7 其他手动安装项（不在 winget 中的）</h2>
+    <table>
+        <tr><th>软件</th><th>安装方式</th><th>备注</th></tr>
+        <tr>
+            <td>CH340/CH341 USB 转串口驱动</td>
+            <td>从 NAS <code>\\...\Software\Drivers\CH341\</code> 手动安装</td>
+            <td>Arduino Nano/ESP32 等开发板需要</td>
+        </tr>
+        <tr>
+            <td>CP2102 USB 转串口驱动</td>
+            <td>Silicon Labs 官网下载</td>
+            <td>NodeMCU 等设备需要</td>
+        </tr>
+        <tr>
+            <td>FTDI 驱动</td>
+            <td>FTDI 官网下载</td>
+            <td>部分高端开发板需要</td>
+        </tr>
+    </table>
+    <div class="cmd"><span class="comment"># 串口驱动安装后验证：</span>
+<span class="comment"># 1. 插入 Arduino/ESP32 到 USB</span>
+<span class="comment"># 2. Device Manager → Ports (COM & LPT)</span>
+<span class="comment"># 3. 应出现 "USB-SERIAL CH340 (COM3)" 或类似</span>
+<span class="comment"># 4. Arduino IDE 中选择对应 COM 端口</span></div>
+</div>
+
+<!-- 3.8 -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>3.8 安装验证</h2>
+    <div class="cmd"><span class="comment"># 重新打开 PowerShell，运行验证脚本：</span>
+
+<span class="highlight">$checks</span> = @(
+    @{Name=<span class="string">"Python"</span>;    Cmd=<span class="string">"python --version"</span>},
+    @{Name=<span class="string">"pip"</span>;       Cmd=<span class="string">"pip --version"</span>},
+    @{Name=<span class="string">"Git"</span>;       Cmd=<span class="string">"git --version"</span>},
+    @{Name=<span class="string">"Node.js"</span>;   Cmd=<span class="string">"node --version"</span>},
+    @{Name=<span class="string">"npm"</span>;       Cmd=<span class="string">"npm --version"</span>},
+    @{Name=<span class="string">"VS Code"</span>;   Cmd=<span class="string">"code --version"</span>},
+    @{Name=<span class="string">"conda"</span>;     Cmd=<span class="string">"conda --version"</span>}
+)
+
+Write-Host "=== Software Verification ===" -ForegroundColor Cyan
+<span class="highlight">foreach</span> ($check <span class="highlight">in</span> $checks) {
+    Write-Host "$($check.Name): " -NoNewline
+    <span class="highlight">try</span> {
+        $result = Invoke-Expression $check.Cmd 2>&1 | Select-Object -First 1
+        Write-Host $result -ForegroundColor Green
+    } <span class="highlight">catch</span> {
+        Write-Host "NOT FOUND" -ForegroundColor Red
+    }
+}
+
+<span class="comment"># 检查 GUI 应用</span>
+Write-Host ""
+Write-Host "=== GUI Apps (check manually) ===" -ForegroundColor Cyan
+$guiApps = @(<span class="string">"Chrome"</span>, <span class="string">"Notepad++"</span>, <span class="string">"7-Zip"</span>, <span class="string">"Wireshark"</span>, <span class="string">"Arduino IDE"</span>, <span class="string">"RustDesk"</span>, <span class="string">"PuTTY"</span>)
+$guiApps | ForEach-Object { Write-Host "  ☐ $_" }</div>
+
+    <ul class="checklist">
+        <li>python/pip/git/node/npm/code 命令行全部可用</li>
+        <li>VS Code 可正常打开，扩展已安装</li>
+        <li>Chrome 可正常上网</li>
+        <li>Arduino IDE 可打开（暂不需要连接设备）</li>
+        <li>Active Backup Agent 显示已连接 NAS</li>
+        <li>RustDesk 可打开并显示 ID</li>
+        <li>NumPy/Pandas 等 Python 库 import 无报错</li>
+    </ul>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div><strong>Step 3 完成！</strong>所有 Lab 软件已安装就绪。接下来配置 NAS 映射和用户策略。</div>
+    </div>
+</div>
+
+<div class="step-nav">
+    <a href="system-config.html">← Step 2: 系统配置</a>
+    <a href="nas-mapping.html">Step 4: NAS 映射 →</a>
+</div>
+
+<div class="footer">
+    I-Lab Golden Image Guide | Step 3: Software Installation | Updated: 2026-06-15
+</div>
+
+</div>
+</body>
+</html>

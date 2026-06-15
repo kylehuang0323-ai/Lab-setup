@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 2: 系统基础配置 - I-Lab Golden Image</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-light: #CFE4FA;
+            --success: #107C10;
+            --success-light: #DFF6DD;
+            --warning: #F7630C;
+            --warning-light: #FFF4CE;
+            --danger: #D13438;
+            --danger-light: #FDE7E9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, 'Microsoft YaHei', sans-serif;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.7;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #0078D4, #005a9e);
+            color: white;
+            padding: 36px 40px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,120,212,0.25);
+        }
+        .header h1 { font-size: 1.7em; margin-bottom: 6px; }
+        .header .subtitle { opacity: 0.9; }
+        .header .meta { margin-top: 10px; font-size: 0.85em; opacity: 0.75; }
+        .nav-links {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+        }
+        .nav-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .nav-links a.active { font-weight: 700; text-decoration: underline; }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 26px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 14px;
+            font-size: 1.25em;
+        }
+        .section h3 {
+            color: #444;
+            margin: 16px 0 8px;
+            font-size: 1em;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 4px;
+        }
+        .cmd {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.84em;
+            overflow-x: auto;
+            margin: 10px 0 14px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            position: relative;
+        }
+        .cmd .comment { color: #6a9955; }
+        .cmd .highlight { color: #569cd6; }
+        .cmd .string { color: #ce9178; }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin: 12px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .alert-info { background: var(--primary-light); border: 1px solid var(--primary); }
+        .alert-warning { background: var(--warning-light); border: 1px solid var(--warning); }
+        .alert-success { background: var(--success-light); border: 1px solid var(--success); }
+        .alert-icon { font-size: 1.2em; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+        .checklist li {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #ddd;
+        }
+        .checklist li::before { content: '☐ '; }
+        .step-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-nav a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: var(--primary-light);
+        }
+        .step-nav a:hover { background: var(--primary); color: white; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>⚙️ Step 2: 系统基础配置</h1>
+    <div class="subtitle">电源策略 · 远程桌面 · Wake on LAN · 区域设置</div>
+    <div class="meta">预计耗时：20 分钟 | 前置条件：Step 1 驱动已装完并重启</div>
+</div>
+
+<div class="nav-links">
+    📍 导航：
+    <a href="index.html">NAS 配置</a>
+    <a href="deployment-plan.html">部署方案</a>
+    <a href="driver-install.html">Step 1: 驱动</a>
+    <a href="system-config.html" class="active">Step 2: 系统配置</a>
+    <a href="software-install.html">Step 3: 软件安装</a>
+    <a href="nas-mapping.html">Step 4: NAS映射</a>
+    <a href="sysprep-backup.html">Step 5-7: 封装备份</a>
+</div>
+
+<!-- 2.1 -->
+<div class="section">
+    <h2>2.1 打开 PowerShell（管理员模式）</h2>
+    <p>右键点击开始菜单 → 选择 <strong>Terminal (Admin)</strong>，或搜索 "PowerShell" → Run as Administrator</p>
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div>以下所有命令都必须在<strong>管理员 PowerShell</strong> 中运行，否则会报权限错误。</div>
+    </div>
+</div>
+
+<!-- 2.2 -->
+<div class="section">
+    <h2>2.2 计算机名 & 区域设置</h2>
+    <div class="cmd"><span class="comment"># 设置临时模板名（Sysprep 后会被清除，仅制作阶段使用）</span>
+Rename-Computer -NewName <span class="string">"GMK-WS-TEMPLATE"</span> -Force
+
+<span class="comment"># 设置时区为中国标准时间 (UTC+8)</span>
+Set-TimeZone -Id <span class="string">"China Standard Time"</span>
+
+<span class="comment"># 验证时区设置</span>
+Get-TimeZone
+<span class="comment"># 预期输出：(UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi</span>
+
+<span class="comment"># 设置系统区域为中国（影响日期格式、货币等）</span>
+Set-WinSystemLocale -SystemLocale zh-CN
+
+<span class="comment"># 设置位置为中国</span>
+Set-WinHomeLocation -GeoId 45</div>
+</div>
+
+<!-- 2.3 -->
+<div class="section">
+    <h2>2.3 电源策略</h2>
+    <p>确保工作站不会自动休眠/关屏，影响用户操作和远程管理。</p>
+    <div class="cmd"><span class="comment"># 接通电源时永不待机（0 = 从不）</span>
+powercfg /change standby-timeout-ac 0
+
+<span class="comment"># 禁用 hibernate（避免占用磁盘空间 + 还原冲突）</span>
+powercfg /change hibernate-timeout-ac 0
+powercfg /hibernate off
+
+<span class="comment"># 显示器 60 分钟后关闭（节能但不影响运行）</span>
+powercfg /change monitor-timeout-ac 60
+
+<span class="comment"># 硬盘永不关闭</span>
+powercfg /change disk-timeout-ac 0
+
+<span class="comment"># 禁用 USB 选择性挂起（防止 Arduino/传感器/开发板断连）</span>
+powercfg /SETACVALUEINDEX SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+powercfg /SETACTIVE SCHEME_CURRENT</div>
+
+    <h3>验证电源配置</h3>
+    <div class="cmd"><span class="comment"># 查看当前活动电源方案的所有设置</span>
+powercfg /query SCHEME_CURRENT
+
+<span class="comment"># 快速检查关键项</span>
+Write-Host "=== Power Settings Check ===" -ForegroundColor Cyan
+$plan = powercfg /query SCHEME_CURRENT
+if ($plan -match "Current AC Power Setting Index:\s+0x00000000") {
+    Write-Host "[OK] Standby timeout = Never" -ForegroundColor Green
+}</div>
+</div>
+
+<!-- 2.4 -->
+<div class="section">
+    <h2>2.4 开启远程桌面 (RDP)</h2>
+    <p>管理员远程维护使用，无需每次到机器前操作。</p>
+    <div class="cmd"><span class="comment"># 开启远程桌面服务</span>
+Set-ItemProperty -Path <span class="string">'HKLM:\System\CurrentControlSet\Control\Terminal Server'</span> -Name <span class="string">"fDenyTSConnections"</span> -Value 0
+
+<span class="comment"># 防火墙放行 RDP（端口 3389）</span>
+Enable-NetFirewallRule -DisplayGroup <span class="string">"Remote Desktop"</span>
+
+<span class="comment"># 设置 NLA（Network Level Authentication）- 更安全</span>
+Set-ItemProperty -Path <span class="string">'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'</span> -Name <span class="string">"UserAuthentication"</span> -Value 1
+
+<span class="comment"># 验证 RDP 已开启</span>
+$rdp = Get-ItemProperty -Path <span class="string">'HKLM:\System\CurrentControlSet\Control\Terminal Server'</span>
+if ($rdp.fDenyTSConnections -eq 0) {
+    Write-Host "[OK] Remote Desktop enabled" -ForegroundColor Green
+} else {
+    Write-Host "[FAIL] Remote Desktop NOT enabled!" -ForegroundColor Red
+}</div>
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>测试方法：</strong>从另一台电脑运行 <code>mstsc /v:GMK-WS-TEMPLATE</code> 尝试连接。</div>
+    </div>
+</div>
+
+<!-- 2.5 -->
+<div class="section">
+    <h2>2.5 开启 Wake on LAN (WoL)</h2>
+    <p>允许管理员从 NAS 远程唤醒关机状态的工作站。</p>
+
+    <h3>PowerShell 配置（部分网卡支持）</h3>
+    <div class="cmd"><span class="comment"># 查看所有网卡</span>
+Get-NetAdapter | Format-Table Name, Status, LinkSpeed, MacAddress
+
+<span class="comment"># 查看网卡高级属性中是否有 WoL 相关设置</span>
+Get-NetAdapterAdvancedProperty -Name "Ethernet*" | Where-Object {$_.DisplayName -like "*Wake*" -or $_.DisplayName -like "*Magic*"} | Format-Table DisplayName, DisplayValue</div>
+
+    <h3>手动设置（必须做）</h3>
+    <div class="cmd"><span class="comment"># 需在设备管理器中手动操作：</span>
+<span class="comment">#</span>
+<span class="comment"># 1. 右键开始菜单 → Device Manager</span>
+<span class="comment"># 2. 展开 Network adapters</span>
+<span class="comment"># 3. 右键 Realtek 2.5G 网卡 → Properties</span>
+<span class="comment"># 4. 切换到 Power Management 标签页</span>
+<span class="comment"># 5. 勾选以下选项：</span>
+<span class="comment">#    ☑ Allow this device to wake the computer</span>
+<span class="comment">#    ☑ Only allow a magic packet to wake the computer</span>
+<span class="comment"># 6. 切换到 Advanced 标签页</span>
+<span class="comment"># 7. 找到 "Wake on Magic Packet" → 设为 Enabled</span>
+<span class="comment"># 8. 点 OK 保存</span></div>
+
+    <h3>BIOS 中确认 WoL（如未设置）</h3>
+    <div class="cmd"><span class="comment"># GMK BIOS 中 WoL 设置路径：</span>
+<span class="comment"># 开机按 DEL 进入 BIOS</span>
+<span class="comment"># Advanced → ACPI Settings → Wake on LAN → Enabled</span>
+<span class="comment"># 如果没有此选项，可能在：</span>
+<span class="comment"># Advanced → Network Stack Configuration → Network Boot → Enabled</span>
+<span class="comment"># Save & Exit</span></div>
+</div>
+
+<!-- 2.6 -->
+<div class="section">
+    <h2>2.6 其他优化设置</h2>
+    <div class="cmd"><span class="comment"># 禁用 Windows Tips/建议通知（减少用户干扰）</span>
+reg add <span class="string">"HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent"</span> /v <span class="string">"DisableWindowsConsumerFeatures"</span> /t REG_DWORD /d 1 /f
+reg add <span class="string">"HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"</span> /v <span class="string">"SubscribedContent-338389Enabled"</span> /t REG_DWORD /d 0 /f
+
+<span class="comment"># 禁用 Cortana</span>
+reg add <span class="string">"HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"</span> /v <span class="string">"AllowCortana"</span> /t REG_DWORD /d 0 /f
+
+<span class="comment"># 显示文件扩展名（对开发者重要）</span>
+reg add <span class="string">"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"</span> /v <span class="string">"HideFileExt"</span> /t REG_DWORD /d 0 /f
+
+<span class="comment"># 显示隐藏文件</span>
+reg add <span class="string">"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"</span> /v <span class="string">"Hidden"</span> /t REG_DWORD /d 1 /f
+
+<span class="comment"># 设置 Windows Update 为仅通知，不自动重启</span>
+reg add <span class="string">"HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"</span> /v <span class="string">"NoAutoRebootWithLoggedOnUsers"</span> /t REG_DWORD /d 1 /f
+
+<span class="comment"># 禁用 Windows Spotlight 锁屏广告</span>
+reg add <span class="string">"HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"</span> /v <span class="string">"RotatingLockScreenOverlayEnabled"</span> /t REG_DWORD /d 0 /f</div>
+</div>
+
+<!-- 2.7 -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>2.7 重启 & 验证</h2>
+    <div class="cmd"><span class="comment"># 重启使所有设置生效</span>
+Restart-Computer -Force</div>
+
+    <h3>重启后验证清单</h3>
+    <ul class="checklist">
+        <li>计算机名显示为 GMK-WS-TEMPLATE（Settings → System → About）</li>
+        <li>时区显示 UTC+8 北京时间</li>
+        <li>电源计划：不会自动休眠（Settings → System → Power）</li>
+        <li>远程桌面可从其他设备连入</li>
+        <li>网卡 WoL 已开启（Device Manager 确认）</li>
+        <li>文件扩展名已显示</li>
+    </ul>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div><strong>Step 2 完成！</strong>系统基础配置就绪，接下来安装 Lab 软件。</div>
+    </div>
+</div>
+
+<div class="step-nav">
+    <a href="driver-install.html">← Step 1: 驱动安装</a>
+    <a href="software-install.html">Step 3: 软件安装 →</a>
+</div>
+
+<div class="footer">
+    I-Lab Golden Image Guide | Step 2: System Configuration | Updated: 2026-06-15
+</div>
+
+</div>
+</body>
+</html>

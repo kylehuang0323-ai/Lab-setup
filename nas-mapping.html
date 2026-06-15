@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 4: NAS 映射 & 用户策略 - I-Lab Golden Image</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-light: #CFE4FA;
+            --success: #107C10;
+            --success-light: #DFF6DD;
+            --warning: #F7630C;
+            --warning-light: #FFF4CE;
+            --danger: #D13438;
+            --danger-light: #FDE7E9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, 'Microsoft YaHei', sans-serif;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.7;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #0078D4, #005a9e);
+            color: white;
+            padding: 36px 40px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,120,212,0.25);
+        }
+        .header h1 { font-size: 1.7em; margin-bottom: 6px; }
+        .header .subtitle { opacity: 0.9; }
+        .header .meta { margin-top: 10px; font-size: 0.85em; opacity: 0.75; }
+        .nav-links {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+        }
+        .nav-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .nav-links a.active { font-weight: 700; text-decoration: underline; }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 26px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 14px;
+            font-size: 1.25em;
+        }
+        .section h3 {
+            color: #444;
+            margin: 16px 0 8px;
+            font-size: 1em;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 4px;
+        }
+        .cmd {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.84em;
+            overflow-x: auto;
+            margin: 10px 0 14px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .cmd .comment { color: #6a9955; }
+        .cmd .highlight { color: #569cd6; }
+        .cmd .string { color: #ce9178; }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin: 12px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .alert-info { background: var(--primary-light); border: 1px solid var(--primary); }
+        .alert-warning { background: var(--warning-light); border: 1px solid var(--warning); }
+        .alert-success { background: var(--success-light); border: 1px solid var(--success); }
+        .alert-icon { font-size: 1.2em; }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+        .checklist li {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #ddd;
+        }
+        .checklist li::before { content: '☐ '; }
+        .step-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-nav a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: var(--primary-light);
+        }
+        .step-nav a:hover { background: var(--primary); color: white; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.82em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>🗂️ Step 4: NAS 映射 & 用户策略</h1>
+    <div class="subtitle">自动映射网络盘 · 登录脚本 · 桌面提示 · 数据保存策略</div>
+    <div class="meta">预计耗时：20 分钟 | 前置条件：NAS SMB 已配置、Step 3 完成</div>
+</div>
+
+<div class="nav-links">
+    📍 导航：
+    <a href="index.html">NAS 配置</a>
+    <a href="deployment-plan.html">部署方案</a>
+    <a href="driver-install.html">Step 1: 驱动</a>
+    <a href="system-config.html">Step 2: 系统配置</a>
+    <a href="software-install.html">Step 3: 软件安装</a>
+    <a href="nas-mapping.html" class="active">Step 4: NAS映射</a>
+    <a href="sysprep-backup.html">Step 5-7: 封装备份</a>
+</div>
+
+<!-- Why -->
+<div class="section" style="border-left-color: var(--warning);">
+    <h2>⚠️ 为什么不用 persistent 映射？</h2>
+    <p>因为回滚软件（Reboot Restore Rx Pro）会在重启时还原系统状态，
+    包括注册表中的 persistent 网络映射记录。所以我们必须用<strong>登录脚本</strong>方式，
+    每次登录时自动重新映射，确保 NAS 盘始终可用。</p>
+</div>
+
+<!-- 4.1 -->
+<div class="section">
+    <h2>4.1 创建 NAS 映射脚本</h2>
+    <p>在 PowerShell (Admin) 中执行以下命令创建脚本文件：</p>
+    <div class="cmd"><span class="comment"># 创建脚本目录</span>
+New-Item -Path <span class="string">"C:\Scripts"</span> -ItemType Directory -Force
+
+<span class="comment"># 创建 NAS 映射批处理脚本</span>
+<span class="highlight">$scriptContent</span> = @<span class="string">'
+@echo off
+REM =============================================
+REM  I-Lab NAS Auto-Mount Script
+REM  每次登录时自动执行，映射 NAS 网络盘
+REM =============================================
+
+REM 等待网络就绪（开机后网络可能需要几秒初始化）
+timeout /t 5 /nobreak >nul
+
+REM 清除旧映射（防止冲突）
+net use Z: /delete /yes 2>nul
+net use Y: /delete /yes 2>nul
+
+REM 映射 LabData 为 Z: 盘（用户工作数据）
+net use Z: \\192.168.0.81\LabData /persistent:no /user:labuser YourPasswordHere
+
+REM 映射 Software 为 Y: 盘（软件仓库，只读参考）
+net use Y: \\192.168.0.81\Software /persistent:no /user:labuser YourPasswordHere
+
+REM 验证映射
+if exist Z:\ (
+    echo [OK] Z: drive mounted successfully
+) else (
+    echo [WARN] Z: drive mount failed, retrying...
+    timeout /t 3 /nobreak >nul
+    net use Z: \\192.168.0.81\LabData /persistent:no /user:labuser YourPasswordHere
+)
+'@</span>
+
+<span class="highlight">$scriptContent</span> | Out-File -FilePath <span class="string">"C:\Scripts\mount-nas.bat"</span> -Encoding ASCII
+Write-Host "[OK] Script created: C:\Scripts\mount-nas.bat" -ForegroundColor Green</div>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>安全提示：</strong>脚本中的密码是明文。对于 Lab 环境可接受。
+        如需更安全，可以在 NAS 端对该共享设置"允许 Guest 访问"，然后脚本中不写密码：
+        <code>net use Z: \\192.168.0.81\LabData /persistent:no</code></div>
+    </div>
+</div>
+
+<!-- 4.2 -->
+<div class="section">
+    <h2>4.2 注册为登录自动运行</h2>
+    <p>有两种方式，推荐方式 B（Task Scheduler 更可靠）：</p>
+
+    <h3>方式 A：注册表 Run 键</h3>
+    <div class="cmd"><span class="comment"># 所有用户登录时自动运行映射脚本</span>
+reg add <span class="string">"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"</span> /v <span class="string">"MountNAS"</span> /t REG_SZ /d <span class="string">"C:\Scripts\mount-nas.bat"</span> /f
+
+<span class="comment"># 验证注册表已写入</span>
+reg query <span class="string">"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"</span> /v <span class="string">"MountNAS"</span></div>
+
+    <h3>方式 B：Task Scheduler（推荐）</h3>
+    <div class="cmd"><span class="comment"># 创建计划任务：每次用户登录时运行映射脚本</span>
+<span class="highlight">$action</span> = New-ScheduledTaskAction -Execute <span class="string">"C:\Scripts\mount-nas.bat"</span>
+<span class="highlight">$trigger</span> = New-ScheduledTaskTrigger -AtLogOn
+<span class="highlight">$settings</span> = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+<span class="highlight">$principal</span> = New-ScheduledTaskPrincipal -GroupId <span class="string">"BUILTIN\Users"</span> -RunLevel Limited
+
+Register-ScheduledTask `
+    -TaskName <span class="string">"I-Lab-Mount-NAS"</span> `
+    -Action $action `
+    -Trigger $trigger `
+    -Settings $settings `
+    -Principal $principal `
+    -Description <span class="string">"Auto-mount NAS drives on user login"</span> `
+    -Force
+
+<span class="comment"># 验证任务已创建</span>
+Get-ScheduledTask -TaskName <span class="string">"I-Lab-Mount-NAS"</span> | Format-Table TaskName, State</div>
+</div>
+
+<!-- 4.3 -->
+<div class="section">
+    <h2>4.3 创建桌面数据保存提示</h2>
+    <p>在公共桌面放一个醒目的提示文件，所有用户登录都能看到：</p>
+    <div class="cmd"><span class="comment"># 创建桌面提示文件（所有用户都能看到）</span>
+<span class="highlight">$notice</span> = @<span class="string">"
+╔══════════════════════════════════════════════════════╗
+║              I-Lab 工作站使用须知                     ║
+╠══════════════════════════════════════════════════════╣
+║                                                      ║
+║  ⚠️  重要：本机重启后 C: 盘会自动还原！             ║
+║                                                      ║
+║  ✅ 请将所有工作文件保存到：                         ║
+║     Z: 盘（NAS 网络盘）                             ║
+║     路径示例：Z:\你的名字\项目名\                    ║
+║                                                      ║
+║  ❌ 以下位置的文件重启后会消失：                     ║
+║     • 桌面 (Desktop)                                 ║
+║     • 文档 (Documents)                               ║
+║     • 下载 (Downloads)                               ║
+║     • C: 盘上任何位置                                ║
+║                                                      ║
+║  💡 使用建议：                                       ║
+║     • 代码项目 clone 到 Z:\你的名字\projects\        ║
+║     • VS Code 工作区保存到 Z: 盘                     ║
+║     • Y: 盘有常用软件安装包（只读）                  ║
+║     • 如需安装新软件，联系 Lab 管理员                 ║
+║                                                      ║
+║  📞 遇到问题？联系 Lab 管理员                        ║
+║                                                      ║
+╚══════════════════════════════════════════════════════╝
+"@</span>
+
+<span class="highlight">$notice</span> | Out-File -FilePath <span class="string">"C:\Users\Public\Desktop\⚠️ 数据保存须知-必读.txt"</span> -Encoding UTF8
+Write-Host "[OK] Notice file created on Public Desktop" -ForegroundColor Green</div>
+</div>
+
+<!-- 4.4 -->
+<div class="section">
+    <h2>4.4 创建快捷方式到 NAS</h2>
+    <div class="cmd"><span class="comment"># 在公共桌面创建 Z: 盘快捷方式，方便用户一键打开</span>
+<span class="highlight">$WshShell</span> = New-Object -ComObject WScript.Shell
+<span class="highlight">$shortcut</span> = $WshShell.CreateShortcut(<span class="string">"C:\Users\Public\Desktop\📁 NAS 工作盘 (Z).lnk"</span>)
+$shortcut.TargetPath = <span class="string">"Z:\"</span>
+$shortcut.Description = <span class="string">"I-Lab NAS 数据盘 - 在这里保存你的工作文件"</span>
+$shortcut.Save()
+
+Write-Host "[OK] NAS shortcut created on Public Desktop" -ForegroundColor Green</div>
+</div>
+
+<!-- 4.5 -->
+<div class="section">
+    <h2>4.5 设置 Windows 默认保存位置（可选）</h2>
+    <p>将 Windows 默认的文档/下载位置指向 NAS（对部分应用有效）：</p>
+    <div class="cmd"><span class="comment"># 注意：此设置会被回滚软件还原，但首次使用时有引导作用</span>
+<span class="comment"># 如果确定不需要可跳过此步</span>
+
+<span class="comment"># 创建 NAS 上的模板目录结构</span>
+<span class="highlight">if</span> (Test-Path "Z:\") {
+    New-Item -Path <span class="string">"Z:\Template"</span> -ItemType Directory -Force
+    New-Item -Path <span class="string">"Z:\Template\Desktop"</span> -ItemType Directory -Force
+    New-Item -Path <span class="string">"Z:\Template\Documents"</span> -ItemType Directory -Force
+    New-Item -Path <span class="string">"Z:\Template\Projects"</span> -ItemType Directory -Force
+    Write-Host "[OK] Template directories created on NAS" -ForegroundColor Green
+} <span class="highlight">else</span> {
+    Write-Host "[SKIP] Z: not mounted, skip NAS directory creation" -ForegroundColor Yellow
+}</div>
+</div>
+
+<!-- 4.6 -->
+<div class="section" style="border-left-color: var(--success);">
+    <h2>4.6 测试验证</h2>
+    <div class="cmd"><span class="comment"># 模拟测试：注销再登录，检查映射是否自动生效</span>
+<span class="comment"># 或者手动运行脚本测试：</span>
+& <span class="string">"C:\Scripts\mount-nas.bat"</span>
+
+<span class="comment"># 验证 Z: 盘可访问</span>
+<span class="highlight">if</span> (Test-Path <span class="string">"Z:\"</span>) {
+    Write-Host "[OK] Z: drive accessible" -ForegroundColor Green
+    Get-ChildItem Z:\ | Select-Object Name, LastWriteTime
+} <span class="highlight">else</span> {
+    Write-Host "[FAIL] Z: drive not accessible!" -ForegroundColor Red
+}
+
+<span class="comment"># 验证写入权限</span>
+<span class="highlight">try</span> {
+    <span class="string">"test"</span> | Out-File <span class="string">"Z:\connection_test.txt"</span>
+    Remove-Item <span class="string">"Z:\connection_test.txt"</span>
+    Write-Host "[OK] Z: drive read/write OK" -ForegroundColor Green
+} <span class="highlight">catch</span> {
+    Write-Host "[FAIL] Z: drive write permission denied!" -ForegroundColor Red
+}
+
+<span class="comment"># 验证桌面文件存在</span>
+<span class="highlight">if</span> (Test-Path <span class="string">"C:\Users\Public\Desktop\⚠️ 数据保存须知-必读.txt"</span>) {
+    Write-Host "[OK] Desktop notice file exists" -ForegroundColor Green
+}</div>
+
+    <ul class="checklist">
+        <li>C:\Scripts\mount-nas.bat 文件存在</li>
+        <li>Task Scheduler 中 "I-Lab-Mount-NAS" 任务已注册</li>
+        <li>注销重新登录后 Z: 盘自动出现</li>
+        <li>Z: 盘可读写文件</li>
+        <li>Y: 盘可读取</li>
+        <li>公共桌面有"数据保存须知"文件</li>
+        <li>公共桌面有 NAS 快捷方式</li>
+    </ul>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div><strong>Step 4 完成！</strong>NAS 映射和用户策略配置就绪。接下来进入最后阶段：清理、封装、备份。</div>
+    </div>
+</div>
+
+<div class="step-nav">
+    <a href="software-install.html">← Step 3: 软件安装</a>
+    <a href="sysprep-backup.html">Step 5-7: 封装备份 →</a>
+</div>
+
+<div class="footer">
+    I-Lab Golden Image Guide | Step 4: NAS Mapping & User Policy | Updated: 2026-06-15
+</div>
+
+</div>
+</body>
+</html>
