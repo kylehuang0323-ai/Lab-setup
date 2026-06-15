@@ -361,11 +361,70 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v Disa
         <tr><td>系统完整性</td><td>每日自动回滚到基线，无法持久化任何恶意操作</td></tr>
     </table>
 
+    <h3>⚠️ 故障排除：重启后仍弹出密码/PIN 界面</h3>
+    <p>如果执行上述命令后重启仍要求输入密码，通常是 <strong>Windows Hello PIN 优先级高于密码</strong>导致。执行以下命令彻底清除：</p>
+
+    <div class="cmd"><span class="comment">REM === 7. 禁用 Windows Hello / PIN 登录 ===</span>
+reg add "HKLM\SOFTWARE\Microsoft\PolicyManager\default\Settings\AllowSignInOptions" /v value /t REG_DWORD /d 0 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\PassportForWork" /v Enabled /t REG_DWORD /d 0 /f
+
+<span class="comment">REM === 8. 删除已有的 PIN 数据 ===</span>
+takeown /f "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc" /r /d y
+icacls "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc" /grant Administrators:F /t
+rd /s /q "C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc"
+
+<span class="comment">REM === 9. 强制登录类型为传统密码（绕过 Hello） ===</span>
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v LogonType /t REG_DWORD /d 0 /f
+
+<span class="comment">REM === 重启验证 ===</span>
+Restart-Computer</div>
+
+    <h3>备用方案：使用微软官方 Autologon 工具</h3>
+    <p>如果注册表方法仍然无效，可使用 Sysinternals 的 Autologon 工具（微软官方出品）：</p>
+    <div class="cmd"><span class="comment"># PowerShell 下载并运行 Autologon</span>
+Invoke-WebRequest -Uri <span class="string">"https://live.sysinternals.com/Autologon.exe"</span> -OutFile <span class="string">"$env:TEMP\Autologon.exe"</span>
+& <span class="string">"$env:TEMP\Autologon.exe"</span> <span class="string">"I-Lab-003"</span> <span class="string">""</span> <span class="string">""</span>
+
+<span class="comment"># 弹窗后点击 Enable → 重启即可</span>
+<span class="comment"># 参数说明：Autologon.exe "用户名" "域(留空)" "密码(留空)"</span></div>
+
+    <h3>故障排除对照表</h3>
+    <table>
+        <tr><th>现象</th><th>原因</th><th>解决命令</th></tr>
+        <tr>
+            <td>重启后要求输入 PIN</td>
+            <td>Windows Hello PIN 未清除</td>
+            <td>执行上述步骤 7-9，删除 Ngc 目录</td>
+        </tr>
+        <tr>
+            <td>重启后要求输入密码</td>
+            <td>AutoAdminLogon 未生效</td>
+            <td>使用 Autologon.exe 工具替代</td>
+        </tr>
+        <tr>
+            <td>显示"其他用户"</td>
+            <td>DefaultUserName 写错</td>
+            <td>确认用户名：<code>whoami</code> 或 <code>net user</code></td>
+        </tr>
+        <tr>
+            <td>锁屏后要求密码</td>
+            <td>NoLockScreen 策略未生效</td>
+            <td>运行 <code>gpupdate /force</code> 后重启</td>
+        </tr>
+        <tr>
+            <td>休眠恢复要求密码</td>
+            <td>电源唤醒要求密码</td>
+            <td><code>powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_NONE CONSOLELOCK 0</code></td>
+        </tr>
+    </table>
+
     <div class="alert alert-warning">
         <span class="alert-icon">⚠️</span>
         <div>
             <strong>注意：</strong>此配置应在 Golden Image 制作时完成（Sysprep 之前）。<br>
-            这样所有克隆的机器都会自动具备无密码自动登录能力，无需逐台设置。
+            这样所有克隆的机器都会自动具备无密码自动登录能力，无需逐台设置。<br><br>
+            <strong>用户名替换：</strong>命令中的 <code>Lab-Admin</code> 或 <code>I-Lab-003</code> 需替换为实际账户名。<br>
+            可通过 <code>whoami</code> 查看当前用户名。
         </div>
     </div>
 </div>
