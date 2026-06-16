@@ -533,6 +533,49 @@ pause</div>
             可通过 <code>whoami</code> 查看当前用户名。
         </div>
     </div>
+
+    <h3>✅ 替代方案：统一密码 + 自动登录（推荐）</h3>
+    <p>如果 Windows 11 始终无法绕过密码要求（<code>DevicePasswordLessBuildVersion</code> 改为 0 后仍无效），可设置统一密码并通过注册表自动登录。<strong>用户体验完全一致——开机直接进桌面。</strong></p>
+
+    <div class="cmd"><span class="comment">REM ============================================</span>
+<span class="comment">REM  统一密码 + 自动登录方案</span>
+<span class="comment">REM  效果：开机直接进桌面，用户无需手动输入</span>
+<span class="comment">REM  以管理员身份运行</span>
+<span class="comment">REM ============================================</span>
+
+<span class="comment">REM === 1. 设置统一密码 ===</span>
+net user I-Lab-003 "Password01"
+
+<span class="comment">REM === 2. 配置自动登录（Windows 用注册表中的密码自动完成登录） ===</span>
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d "1" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d "I-Lab-003" /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d "Password01" /f
+
+<span class="comment">REM === 3. 重启验证 ===</span>
+shutdown /r /t 0
+
+<span class="comment">REM 重启后应直接进入桌面，无任何登录界面</span></div>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>说明：</strong><br>
+            • 密码以明文存储在注册表中，Windows 启动时自动读取并完成登录<br>
+            • 用户完全无感知，体验等同于无密码<br>
+            • 安全性：工作站为每日重置的沙盒 + 物理管控环境，明文注册表密码风险可接受<br>
+            • Golden Image 中统一设置后，所有克隆的机器自动生效<br>
+            • <strong>用户名需按工位替换：</strong>I-Lab-001 ~ I-Lab-012
+        </div>
+    </div>
+
+    <h3>批量部署时的差异化处理</h3>
+    <p>Golden Image 中设置通用配置，部署后通过 post-deploy 脚本更新用户名：</p>
+    <div class="cmd"><span class="comment">REM post-deploy.ps1 中添加（根据工位号自动设置）</span>
+param($WSNumber)
+$username = "I-Lab-$('{0:D3}' -f $WSNumber)"
+
+<span class="comment"># 更新自动登录的用户名</span>
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d $username /f</div>
 </div>
 
 <div class="section" style="border-left-color: var(--success);">
