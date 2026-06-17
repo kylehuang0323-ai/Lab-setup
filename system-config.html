@@ -143,8 +143,8 @@
 
 <div class="header">
     <h1>⚙️ Step 2: 系统基础配置</h1>
-    <div class="subtitle">电源策略 · 远程桌面 · Wake on LAN · 区域设置</div>
-    <div class="meta">预计耗时：20 分钟 | 前置条件：Step 1 驱动已装完并重启</div>
+    <div class="subtitle">电源策略 · 远程桌面 · Wake on LAN · 区域设置 · 本地模型配置</div>
+    <div class="meta">预计耗时：30 分钟 | 前置条件：Step 1 驱动已装完并重启</div>
 </div>
 
 <div class="nav-links">
@@ -578,8 +578,56 @@ $username = "I-Lab-$('{0:D3}' -f $WSNumber)"
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d $username /f</div>
 </div>
 
+
+<!-- 2.8 -->
+<div class="section">
+    <h2>2.8 本地模型配置（GMK EVO-X2）</h2>
+    <p>GMK EVO-X2（128GB RAM + 2TB SSD）建议采用“默认模型 + 进阶模型”分层，确保开箱即用和稳定响应。</p>
+
+    <h3>推荐模型分层</h3>
+    <table>
+        <tr><th>层级</th><th>模型</th><th>用途</th><th>是否默认</th></tr>
+        <tr><td>默认</td><td><code>qwen2.5:7b-instruct</code></td><td>通用问答、写作、总结</td><td>✅ 是</td></tr>
+        <tr><td>默认</td><td><code>deepseek-coder:6.7b</code></td><td>代码辅助、脚本生成</td><td>✅ 是</td></tr>
+        <tr><td>进阶</td><td><code>qwen2.5:14b-instruct</code></td><td>复杂分析、较强推理</td><td>按需开放</td></tr>
+        <tr><td>进阶（可选）</td><td><code>qwen2.5:32b-instruct</code></td><td>高质量生成（耗时更高）</td><td>按需开放</td></tr>
+    </table>
+
+    <h3>安装 Ollama 与拉取模型（管理员 PowerShell）</h3>
+    <div class="cmd"><span class="comment"># 1) 安装 Ollama</span>
+winget install Ollama.Ollama
+
+<span class="comment"># 2) 拉取默认模型（全员）</span>
+ollama pull qwen2.5:7b-instruct
+ollama pull deepseek-coder:6.7b
+
+<span class="comment"># 3) 拉取进阶模型（骨干）</span>
+ollama pull qwen2.5:14b-instruct
+<span class="comment"># 可选：更大模型</span>
+ollama pull qwen2.5:32b-instruct</div>
+
+    <h3>健康检查</h3>
+    <div class="cmd"><span class="comment"># 查看本机可用模型</span>
+ollama list
+
+<span class="comment"># 测试默认模型响应</span>
+ollama run qwen2.5:7b-instruct "请用3点说明你可以做什么"
+
+<span class="comment"># 查看模型进程状态</span>
+ollama ps</div>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>运营建议：</strong><br>
+            1) 全员默认仅开放 7B + coder，保证速度和稳定性。<br>
+            2) 14B/32B 仅给进阶用户，避免高并发卡顿。<br>
+            3) 在 Tools Directory 增加字段：<code>LocalReady</code>、<code>DefaultModel</code>、<code>QuickStartPrompt</code>。
+        </div>
+    </div>
+</div>
 <div class="section" style="border-left-color: var(--success);">
-    <h2>2.8 重启 & 验证</h2>
+    <h2>2.9 重启 & 验证</h2>
     <div class="cmd"><span class="comment"># 重启使所有设置生效</span>
 Restart-Computer -Force</div>
 
@@ -593,6 +641,7 @@ Restart-Computer -Force</div>
         <li>网卡 WoL 已开启（Device Manager 确认）</li>
         <li>文件扩展名已显示</li>
         <li>无锁屏画面出现</li>
+        <li>ollama list 可看到默认模型（qwen2.5:7b-instruct / deepseek-coder:6.7b）</li>
     </ul>
 
     <div class="alert alert-success">
@@ -607,9 +656,11 @@ Restart-Computer -Force</div>
 </div>
 
 <div class="footer">
-    I-Lab Golden Image Guide | Step 2: System Configuration | Updated: 2026-06-15
+    I-Lab Golden Image Guide | Step 2: System Configuration | Updated: 2026-06-17
 </div>
 
 </div>
 </body>
 </html>
+
+
