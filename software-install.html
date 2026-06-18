@@ -166,7 +166,7 @@
 
 <div class="header">
     <h1>📦 Step 3: Lab 软件安装</h1>
-    <div class="subtitle">标准软件白名单 · winget 批量安装 · VS Code 扩展 · Python 环境 · Active Backup Agent</div>
+    <div class="subtitle">标准软件白名单 · winget 批量安装 · VS Code/Cursor 扩展 · Python 环境 · Active Backup Agent</div>
     <div class="meta">预计耗时：60 分钟 | 前置条件：Step 2 系统配置完成并重启 | 需要网络连接</div>
 </div>
 
@@ -187,6 +187,7 @@
 
     <div class="tool-grid">
         <div class="tool-item"><strong>VS Code</strong><br>主力代码编辑器</div>
+        <div class="tool-item"><strong>Cursor</strong><br>AI-first 代码编辑器</div>
         <div class="tool-item"><strong>Python 3.13</strong><br>AI/ML 开发必备</div>
         <div class="tool-item"><strong>Git</strong><br>版本控制</div>
         <div class="tool-item"><strong>Node.js LTS</strong><br>Web 开发运行时</div>
@@ -216,7 +217,7 @@
     <table>
         <tr><th>类别</th><th>软件</th><th>用途</th></tr>
         <tr><td>浏览器</td><td>Microsoft Edge / Google Chrome</td><td>统一访问与调试</td></tr>
-        <tr><td>编辑器</td><td>VS Code</td><td>代码与文档编辑</td></tr>
+        <tr><td>编辑器</td><td>VS Code / Cursor</td><td>代码与文档编辑（Cursor 适合 AI-first）</td></tr>
         <tr><td>终端</td><td>Windows Terminal / PowerShell 7</td><td>命令执行与自动化</td></tr>
         <tr><td>版本控制</td><td>Git for Windows</td><td>代码管理</td></tr>
         <tr><td>运行时</td><td>Node.js LTS / Python 3.11+</td><td>开发运行环境</td></tr>
@@ -237,6 +238,7 @@
     <h3>C. 白名单批量安装命令（管理员 PowerShell）</h3>
     <div class="cmd"><span class="comment"># 必装基础包</span>
 winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements
+winget install -e --id Anysphere.Cursor --accept-source-agreements --accept-package-agreements
 winget install -e --id Microsoft.WindowsTerminal --accept-source-agreements --accept-package-agreements
 winget install -e --id Microsoft.PowerShell --accept-source-agreements --accept-package-agreements
 winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements
@@ -253,6 +255,7 @@ winget install -e --id DBeaver.DBeaverCE --accept-source-agreements --accept-pac
 
     <h3>D. 验证命令</h3>
     <div class="cmd">code --version
+cursor --version
 git --version
 node -v
 python --version
@@ -300,6 +303,7 @@ figma --help
     <h3>开发工具</h3>
     <div class="cmd"><span class="comment"># VS Code - 代码编辑器</span>
 winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements
+winget install -e --id Anysphere.Cursor --accept-source-agreements --accept-package-agreements
 
 <span class="comment"># Python 3.13（稳定版，生态兼容性最佳）</span>
 winget install -e --id Python.Python.3.13
@@ -541,7 +545,8 @@ Start-Process msiexec.exe -ArgumentList <span class="string">"/i `"$env:TEMP\Syn
     @{Name=<span class="string">"Git"</span>;       Cmd=<span class="string">"git --version"</span>},
     @{Name=<span class="string">"Node.js"</span>;   Cmd=<span class="string">"node --version"</span>},
     @{Name=<span class="string">"npm"</span>;       Cmd=<span class="string">"npm --version"</span>},
-    @{Name=<span class="string">"VS Code"</span>;   Cmd=<span class="string">"code --version"</span>},
+    @{Name=<span class="string">"VS Code"</span>;   Cmd=<span class="string">"code --version
+cursor --version"</span>},
     @{Name=<span class="string">"conda"</span>;     Cmd=<span class="string">"conda --version"</span>}
 )
 
@@ -565,6 +570,7 @@ $guiApps | ForEach-Object { Write-Host "  ☐ $_" }</div>
     <ul class="checklist">
         <li>python/pip/git/node/npm/code 命令行全部可用</li>
         <li>VS Code 可正常打开，扩展已安装</li>
+        <li>Cursor 可正常打开并登录（如启用）</li>
         <li>Chrome 可正常上网</li>
         <li>Arduino IDE 可打开（暂不需要连接设备）</li>
         <li>Active Backup Agent 显示已连接 NAS</li>
@@ -592,6 +598,7 @@ $guiApps | ForEach-Object { Write-Host "  ☐ $_" }</div>
 </div>
 </body>
 </html>
+
 
 
 
