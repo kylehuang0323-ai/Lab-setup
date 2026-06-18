@@ -573,32 +573,7 @@ $guiApps | ForEach-Object { Write-Host "  ☐ $_" }</div>
     </ul>
 
 
-    <h3>E. 数据岗安装命令（Data Role）</h3>
-    <div class="cmd"><span class="comment"># Data Role - 推荐增量安装</span>
-winget install -e --id Anaconda.Miniconda3 --accept-source-agreements --accept-package-agreements
-winget install -e --id DBeaver.DBeaverCE --accept-source-agreements --accept-package-agreements
-
-<span class="comment"># 可选：JupyterLab（pip 方式）</span>
-python -m pip install --upgrade pip
-pip install jupyterlab pandas numpy matplotlib seaborn openpyxl</div>
-
-    <h3>F. 设计/内容岗安装命令（Design & Content Role）</h3>
-    <div class="cmd"><span class="comment"># Design & Content Role - 推荐增量安装</span>
-winget install -e --id Figma.Figma --accept-source-agreements --accept-package-agreements
-winget install -e --id Canva.Canva --accept-source-agreements --accept-package-agreements
-
-<span class="comment"># 如 winget 源无该包，请使用官网安装：</span>
-<span class="comment"># 剪映（CapCut）: https://www.capcut.cn/</span>
-<span class="comment"># 创客贴 / 稿定: 建议浏览器PWA方式使用</span></div>
-
-    <h3>G. 角色安装后验证</h3>
-    <div class="cmd"><span class="comment"># 数据岗验证</span>
-python -c "import pandas, numpy; print('data-env-ok')"
-dbeaver --help
-
-<span class="comment"># 设计岗验证</span>
-figma --help
-<span class="comment"># Canva/剪映 若为商店或官网版，请从开始菜单启动验证</span></div>
+    
     <div class="alert alert-success">
         <span class="alert-icon">✅</span>
         <div><strong>Step 3 完成！</strong>所有 Lab 软件已安装就绪。接下来配置 NAS 映射和用户策略。</div>
@@ -617,5 +592,6 @@ figma --help
 </div>
 </body>
 </html>
+
 
 
