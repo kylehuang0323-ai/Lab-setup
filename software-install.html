@@ -166,7 +166,7 @@
 
 <div class="header">
     <h1>📦 Step 3: Lab 软件安装</h1>
-    <div class="subtitle">winget 批量安装 · VS Code 扩展 · Python 环境 · Active Backup Agent</div>
+    <div class="subtitle">标准软件白名单 · winget 批量安装 · VS Code 扩展 · Python 环境 · Active Backup Agent</div>
     <div class="meta">预计耗时：60 分钟 | 前置条件：Step 2 系统配置完成并重启 | 需要网络连接</div>
 </div>
 
@@ -207,9 +207,67 @@
     </div>
 </div>
 
+
 <!-- 3.2 -->
 <div class="section">
-    <h2>3.2 winget 批量安装（推荐）</h2>
+    <h2>3.2 工作站标准软件白名单（Baseline Whitelist）</h2>
+
+    <h3>A. 必装（All Workstations）</h3>
+    <table>
+        <tr><th>类别</th><th>软件</th><th>用途</th></tr>
+        <tr><td>浏览器</td><td>Microsoft Edge / Google Chrome</td><td>统一访问与调试</td></tr>
+        <tr><td>编辑器</td><td>VS Code</td><td>代码与文档编辑</td></tr>
+        <tr><td>终端</td><td>Windows Terminal / PowerShell 7</td><td>命令执行与自动化</td></tr>
+        <tr><td>版本控制</td><td>Git for Windows</td><td>代码管理</td></tr>
+        <tr><td>运行时</td><td>Node.js LTS / Python 3.11+</td><td>开发运行环境</td></tr>
+        <tr><td>基础工具</td><td>7-Zip</td><td>压缩解压</td></tr>
+        <tr><td>协作工具</td><td>Teams / OneDrive</td><td>协作与文件同步</td></tr>
+        <tr><td>本地模型</td><td>Ollama</td><td>本地 LLM 运行时</td></tr>
+    </table>
+
+    <h3>B. 按角色安装（Role-based）</h3>
+    <table>
+        <tr><th>角色</th><th>推荐软件</th><th>说明</th></tr>
+        <tr><td>开发岗</td><td>Docker Desktop, Postman, DBeaver</td><td>API 与容器开发</td></tr>
+        <tr><td>数据岗</td><td>Jupyter, DBeaver</td><td>数据处理分析</td></tr>
+        <tr><td>设计/内容岗</td><td>Figma, 剪映, Canva</td><td>内容与视觉生产</td></tr>
+        <tr><td>高级开发岗</td><td>JetBrains 系列（可选）</td><td>按需授权安装</td></tr>
+    </table>
+
+    <h3>C. 白名单批量安装命令（管理员 PowerShell）</h3>
+    <div class="cmd"><span class="comment"># 必装基础包</span>
+winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements
+winget install -e --id Microsoft.WindowsTerminal --accept-source-agreements --accept-package-agreements
+winget install -e --id Microsoft.PowerShell --accept-source-agreements --accept-package-agreements
+winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements
+winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
+winget install -e --id Python.Python.3.11 --accept-source-agreements --accept-package-agreements
+winget install -e --id 7zip.7zip --accept-source-agreements --accept-package-agreements
+winget install -e --id Google.Chrome --accept-source-agreements --accept-package-agreements
+winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements
+
+<span class="comment"># 可选开发包</span>
+winget install -e --id Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
+winget install -e --id Postman.Postman --accept-source-agreements --accept-package-agreements
+winget install -e --id DBeaver.DBeaverCE --accept-source-agreements --accept-package-agreements</div>
+
+    <h3>D. 验证命令</h3>
+    <div class="cmd">code --version
+git --version
+node -v
+python --version
+ollama --version
+ollama list</div>
+
+    <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div><strong>DoD：</strong>以上命令全部返回版本号，且 <code>ollama list</code> 可执行。</div>
+    </div>
+</div>
+
+<!-- 3.3 -->
+<div class="section">
+    <h2>3.3 winget 批量安装（推荐）</h2>
     <p>打开 <strong>PowerShell (Admin)</strong>，逐块复制粘贴执行：</p>
 
     <h3>开发工具</h3>
@@ -505,3 +563,4 @@ $guiApps | ForEach-Object { Write-Host "  ☐ $_" }</div>
 </div>
 </body>
 </html>
+
