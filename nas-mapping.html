@@ -386,6 +386,22 @@ Restart-Computer
 
 <span class="comment"># 处理完成后重试 Sysprep</span>
 & "$env:WINDIR\System32\Sysprep\Sysprep.exe" /oobe /generalize /shutdown</div>
+
+    <h3>实测操作记录（WS-004）</h3>
+    <div class="cmd"><span class="comment"># 1) Sysprep 报错后先看最近日志（注意是 Get-Content）</span>
+Get-Content C:\Windows\System32\Sysprep\Panther\setuperr.log -Tail 20
+
+<span class="comment"># 2) 先处理 BitLocker / Windows 更新阻塞</span>
+<span class="comment">#    - BitLocker 解密完成（Fully Decrypted / 0%）</span>
+<span class="comment">#    - 更新占用时先更新并重启</span>
+
+<span class="comment"># 3) 根据日志中的 Package 名称移除阻塞包</span>
+Get-AppxPackage -AllUsers *应用名_前的部分* | Remove-AppxPackage
+
+<span class="comment"># 4) 重试 Sysprep</span>
+& "$env:WINDIR\System32\Sysprep\Sysprep.exe" /oobe /generalize /shutdown
+
+<span class="comment"># 5) 按上述流程持续排除，直到 Sysprep 进入 working 状态</span></div>
 </div>
 
 <div class="step-nav">
