@@ -360,13 +360,41 @@ Write-Host "[OK] NAS shortcut created on Public Desktop" -ForegroundColor Green<
     </div>
 </div>
 
+<div class="section" style="border-left-color: var(--warning);">
+    <h2>4.7 Sysprep 阻塞包快速检查（封装前）</h2>
+    <p>如果执行 Sysprep 弹出 “was not able to validate your Windows installation”，先在管理员 PowerShell 执行以下排查命令。</p>
+    <div class="cmd"><span class="comment"># 检查“已安装但未预配”的 Appx 包（常见阻塞源）</span>
+$aProv=@(Get-AppxProvisionedPackage -Online).PackageName
+
+Get-AppxPackage -AllUsers |
+Where-Object {
+    $aProv -notcontains $_.PackageFullName
+} |
+Select Name, PackageFullName
+
+<span class="comment"># 查看 Sysprep 最近错误</span>
+Get-Content "C:\Windows\System32\Sysprep\Panther\setuperr.log" -Tail 80
+
+<span class="comment"># 若看到 LanguageExperiencePackzh-CN / 0x3cf2，可执行：</span>
+Get-AppxPackage *LanguageExperiencePackzh-CN* | Remove-AppxPackage
+Get-AppxPackage -AllUsers *LanguageExperiencePackzh-CN* | Remove-AppxPackage -AllUsers
+Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like "*LanguageExperiencePackzh-CN*" } | Remove-AppxProvisionedPackage -Online
+
+<span class="comment"># 若看到 0x800F0975（reserved storage / update in use）</span>
+UsoClient StartScan
+Restart-Computer
+
+<span class="comment"># 处理完成后重试 Sysprep</span>
+& "$env:WINDIR\System32\Sysprep\Sysprep.exe" /oobe /generalize /shutdown</div>
+</div>
+
 <div class="step-nav">
     <a href="software-install.html">← Step 3: 软件安装</a>
     <a href="sysprep-backup.html">Step 5-7: 封装备份 →</a>
 </div>
 
 <div class="footer">
-    I-Lab Golden Image Guide | Step 4: NAS Mapping & User Policy | Updated: 2026-06-15
+    I-Lab Golden Image Guide | Step 4: NAS Mapping & User Policy | Updated: 2026-06-23
 </div>
 
 </div>

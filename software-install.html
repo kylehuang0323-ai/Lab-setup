@@ -247,6 +247,7 @@ winget install -e --id Python.Python.3.11 --accept-source-agreements --accept-pa
 winget install -e --id 7zip.7zip --accept-source-agreements --accept-package-agreements
 winget install -e --id Google.Chrome --accept-source-agreements --accept-package-agreements
 winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements
+winget install -e --id ArduinoSA.IDE.stable --accept-source-agreements --accept-package-agreements
 
 <span class="comment"># 可选开发包</span>
 winget install -e --id Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
@@ -260,7 +261,20 @@ git --version
 node -v
 python --version
 ollama --version
-ollama list</div>
+ollama list
+arduino-ide --version</div>
+
+    <h3>D1. Ollama 模型拉取命令（管理员 PowerShell）</h3>
+    <div class="cmd"><span class="comment"># 先确认命令可用</span>
+ollama --version
+
+<span class="comment"># 默认模型（推荐）</span>
+ollama pull qwen2.5:7b-instruct
+ollama pull deepseek-coder:6.7b
+
+<span class="comment"># 进阶模型（按需）</span>
+ollama pull qwen2.5:14b-instruct
+ollama pull qwen2.5:32b-instruct</div>
 
 
     <h3>E. 数据岗安装命令（Data Role）</h3>
@@ -592,13 +606,12 @@ $guiApps | ForEach-Object { Write-Host "  ☐ $_" }</div>
 </div>
 
 <div class="footer">
-    I-Lab Golden Image Guide | Step 3: Software Installation | Updated: 2026-06-15
+    I-Lab Golden Image Guide | Step 3: Software Installation | Updated: 2026-06-22
 </div>
 
 </div>
 </body>
 </html>
-
 
 
 

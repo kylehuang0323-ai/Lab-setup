@@ -305,6 +305,15 @@ Get-PSDrive C | Select-Object @{N=<span class="string">'Used(GB)'</span>;E={[mat
 <span class="comment"># 列出可能有问题的 Appx 包</span>
 Get-AppxPackage | Where-Object {$_.IsFramework -eq $false -and $_.SignatureKind -ne "System"} | Select-Object Name, Version | Format-Table
 
+<span class="comment"># 检查“已安装但未预配”的包（Sysprep 常见阻塞源）</span>
+$aProv=@(Get-AppxProvisionedPackage -Online).PackageName
+
+Get-AppxPackage -AllUsers |
+Where-Object {
+    $aProv -notcontains $_.PackageFullName
+} |
+Select Name, PackageFullName
+
 <span class="comment"># 如果 Sysprep 失败，通常需要移除有问题的应用：</span>
 <span class="comment"># Get-AppxPackage *应用名* | Remove-AppxPackage</span>
 <span class="comment"># Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like "*应用名*"} | Remove-AppxProvisionedPackage -Online</span></div>
@@ -369,17 +378,44 @@ Get-Content <span class="string">"C:\Windows\System32\Sysprep\Panther\setupact.l
 
 <span class="comment"># 常见错误及解决：</span>
 <span class="comment">#</span>
-<span class="comment"># 错误：SYSPRP Package ... was installed for a user, but not provisioned for all users</span>
-<span class="comment"># 解决：移除该应用</span>
-<span class="comment"># Get-AppxPackage *包名* | Remove-AppxPackage</span>
-<span class="comment"># Get-AppxProvisionedPackage -Online | Where {$_.PackageName -like "*包名*"} | Remove-AppxProvisionedPackage -Online</span>
+<span class="comment"># 错误 A：There are one or more Windows updates that require a reboot</span>
+<span class="comment"># 解决：先重启，再重试 Sysprep（必要时再重启一次）</span>
+Restart-Computer
+
+<span class="comment"># 错误 A-1：0x800F0975（reserved storage/update in use）</span>
+<span class="comment"># 解决：先完成更新并重启，再执行 Sysprep</span>
+UsoClient StartScan
+Restart-Computer
+
+<span class="comment"># 错误 B：BitLocker-Sysprep: BitLocker is on for the OS volume</span>
+<span class="comment"># 解决：必须先完成 C 盘解密，再执行 Sysprep</span>
+Disable-BitLocker -MountPoint <span class="string">"C:"</span>
+manage-bde -status C:
+<span class="comment"># 等待直到显示：</span>
+<span class="comment"># Conversion Status: Fully Decrypted</span>
+<span class="comment"># Percentage Encrypted: 0%</span>
+
+<span class="comment"># 错误 C：Package ... was installed for a user, but not provisioned for all users</span>
+<span class="comment"># 解决：按报错包名移除当前用户、全部用户、预配包</span>
+Get-AppxPackage *包名* | Remove-AppxPackage
+Get-AppxPackage -AllUsers *包名* | Remove-AppxPackage -AllUsers
+Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -like <span class="string">"*包名*"</span>} | Remove-AppxProvisionedPackage -Online
+
+<span class="comment"># 本次实测示例（中文语言体验包）</span>
+Get-AppxPackage *LanguageExperiencePackzh-CN* | Remove-AppxPackage
+Get-AppxPackage -AllUsers *LanguageExperiencePackzh-CN* | Remove-AppxPackage -AllUsers
+Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -like <span class="string">"*LanguageExperiencePackzh-CN*"</span>} | Remove-AppxProvisionedPackage -Online
+<span class="comment"># 该类错误常见码：0x3cf2</span>
 <span class="comment">#</span>
 <span class="comment"># 错误：SYSPRP Failed to remove apps for the current user</span>
 <span class="comment"># 解决：</span>
 <span class="comment"># reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.XXX_8wekyb3d8bbwe" /f</span>
 <span class="comment">#</span>
 <span class="comment"># 错误：Sysprep count exceeded (已运行过太多次)</span>
-<span class="comment"># 解决：重新安装 Windows（从 Step 1 重来）</span></div>
+<span class="comment"># 解决：重新安装 Windows（从 Step 1 重来）</span>
+
+<span class="comment"># 重新执行 Sysprep：</span>
+&amp; <span class="string">"$env:WINDIR\System32\Sysprep\Sysprep.exe"</span> /oobe /generalize /shutdown</div>
 </div>
 
 <!-- ===== STEP 7 ===== -->
@@ -620,7 +656,7 @@ Get-Content <span class="string">"C:\Windows\System32\Sysprep\Panther\setupact.l
 </div>
 
 <div class="footer">
-    I-Lab Golden Image Guide | Step 5-7: Cleanup, Sysprep & Backup | Updated: 2026-06-15<br>
+    I-Lab Golden Image Guide | Step 5-7: Cleanup, Sysprep & Backup | Updated: 2026-06-23<br>
     ⚠️ Sysprep 后不可逆 — 确保所有步骤验证通过后再执行
 </div>
 
