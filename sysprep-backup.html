@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Step 5-7: 清理·封装·备份 - I-Lab Golden Image</title>
+    <title>Step 5-8: 清理·封装·备份·镜像分配 - I-Lab Golden Image</title>
     <style>
         :root {
             --primary: #0078D4;
@@ -193,8 +193,8 @@
 <div class="container">
 
 <div class="header">
-    <h1>🔒 Step 5-7: 清理 · 封装 · 备份</h1>
-    <div class="subtitle">最终清理 → Sysprep 封装 → Clonezilla 备份到 NAS</div>
+    <h1>🔒 Step 5-8: 清理 · 封装 · 备份 · 镜像分配</h1>
+    <div class="subtitle">最终清理 → Sysprep 封装 → Deep Freeze 基线与 ABB 备份 → 后台镜像直配</div>
     <div class="meta">预计耗时：55 分钟 | ⚠️ 此步骤不可逆，请确认前 4 步全部完成 | 操作后系统关机</div>
 </div>
 
@@ -206,14 +206,14 @@
     <a href="system-config.html">Step 2: 系统配置</a>
     <a href="software-install.html">Step 3: 软件安装</a>
     <a href="nas-mapping.html">Step 4: NAS映射</a>
-    <a href="sysprep-backup.html" class="active">Step 5-7: 封装备份</a>
+    <a href="sysprep-backup.html" class="active">Step 5-8: 封装备份与镜像分配</a>
 </div>
 
 <div class="big-warning">
     <h3>⛔ 重要提醒：执行前必读</h3>
     <p>Step 6 (Sysprep) 执行后系统会<strong>关机</strong>，且<strong>绝对不能再开机进入 Windows</strong>。<br>
-    必须直接用 Clonezilla USB 启动来采集镜像。<br>
-    如果误操作开机了，Golden Image 作废，需从 Step 1 重新开始。</p>
+    如果误操作开机进入系统，建议重新执行 Sysprep 再做发布。<br>
+    本手册当前以 Deep Freeze + ABB 的运行模型为准。</p>
 </div>
 
 <!-- ===== STEP 5 ===== -->
@@ -334,7 +334,7 @@ Select Name, PackageFullName
         <ul style="margin-top:5px;">
             <li>Step 1-5 全部完成？</li>
             <li>确认不需要再装任何软件？</li>
-            <li>Clonezilla USB 已准备好？</li>
+            <li>Deep Freeze 与 ABB 策略已准备好？</li>
             <li>执行后系统会<strong>关机</strong>，不能再正常开机！</li>
         </ul></div>
     </div>
@@ -365,8 +365,8 @@ C:\Windows\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown
     <div class="big-warning">
         <h3>⛔ 关机后的操作</h3>
         <p>1. <strong>不要按电源键！</strong><br>
-        2. 插入 <strong>Clonezilla USB</strong><br>
-        3. 然后进入 Step 7</p>
+        2. 进入 <strong>MIX 控制台</strong><br>
+        3. 按 Step 7 固化 Deep Freeze 与 ABB 基线</p>
     </div>
 </div>
 
@@ -419,233 +419,120 @@ Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -like <span cl
 </div>
 
 <!-- ===== STEP 7 ===== -->
-<div class="step-divider"><span>💾 Step 7: Clonezilla 备份到 NAS（30 min）</span></div>
+<div class="step-divider"><span>❄️ Step 7: Deep Freeze 策略固化 & ABB 基线（30 min）</span></div>
 
 <div class="section success">
-    <h2>7.1 准备工作</h2>
-    <div class="cmd"><span class="comment"># 你需要：</span>
-<span class="comment"># ✅ Clonezilla Live USB（之前用 Rufus 制作）</span>
-<span class="comment">#    下载地址：https://clonezilla.org/downloads.php</span>
-<span class="comment">#    选择：stable → amd64 → iso → Rufus 写入 U 盘</span>
-<span class="comment"># ✅ NAS 上有 GoldenImages 共享文件夹且可写</span>
-<span class="comment"># ✅ GMK 工作站已关机（Sysprep 完成后的状态）</span>
-<span class="comment"># ✅ 网线已连接（Clonezilla 需要网络访问 NAS）</span></div>
+    <h2>7.1 策略固化（MIX 控制台）</h2>
+    <div class="cmd"><span class="comment"># 目标：把当前可用状态固化为可回滚基线</span>
+<span class="comment"># 1) 策略名：WS-Standard-Frozen</span>
+<span class="comment"># 2) 冻结盘：C:</span>
+<span class="comment"># 3) 数据盘：Z:（NAS 持久化）</span>
+<span class="comment"># 4) 维护窗口：每周三 02:00-04:00（可按站点调整）</span>
+<span class="comment"># 5) 发布到 WS-Pilot，再推广 WS-Lab-Prod</span></div>
 </div>
 
 <div class="section success">
-    <h2>7.2 从 Clonezilla USB 启动</h2>
-    <div class="cmd"><span class="comment"># 1. 确保 Clonezilla USB 已插入</span>
-<span class="comment"># 2. 按电源键开机</span>
-<span class="comment"># 3. 立即按 DEL 或 F2 进入 BIOS</span>
-<span class="comment"># 4. Boot → Boot Option #1 → 选择 USB 设备</span>
-<span class="comment"># 5. Save & Exit → 从 USB 启动</span>
-<span class="comment"># 6. 出现 Clonezilla 启动菜单</span></div>
+    <h2>7.2 回滚机制验收（每台至少一次）</h2>
+    <div class="cmd"><span class="comment"># C盘写测试文件（应回滚）</span>
+New-Item -ItemType Directory -Path C:\DF-Test -Force
+"rollback-test $(Get-Date)" | Out-File C:\DF-Test\rollback-test.txt -Encoding utf8
+
+<span class="comment"># Z盘写测试文件（应保留）</span>
+"persist-test $(Get-Date)" | Out-File Z:\df-persist-test.txt -Encoding utf8
+
+<span class="comment"># 重启后检查：</span>
+<span class="comment"># 1) C:\DF-Test\rollback-test.txt 不存在（回滚生效）</span>
+<span class="comment"># 2) Z:\df-persist-test.txt 存在（持久化生效）</span></div>
 </div>
 
 <div class="section success">
-    <h2>7.3 Clonezilla 操作步骤（逐步）</h2>
+    <h2>7.3 ABB 最终基线备份</h2>
+    <div class="cmd"><span class="comment"># 在 ABB 控制台为每台设备执行一次手动备份并打版本标签：</span>
+<span class="comment"># WS-003_Golden_Baseline_Final_YYYYMMDD</span>
+<span class="comment"># WS-004_Golden_Baseline_Final_YYYYMMDD</span>
 
-    <h3>第一阶段：启动设置</h3>
-    <div class="cmd"><span class="comment"># [Screen 1] Clonezilla 启动菜单</span>
-<span class="comment"># → 选择: Clonezilla live (VGA 800x600)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 2] 语言选择</span>
-<span class="comment"># → 选择: en_US.UTF-8 English</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 3] 键盘布局</span>
-<span class="comment"># → 选择: Keep default keyboard layout</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 4] 启动 Clonezilla</span>
-<span class="comment"># → 选择: Start_Clonezilla</span>
-<span class="comment"># → 回车</span></div>
-
-    <h3>第二阶段：连接 NAS</h3>
-    <div class="cmd"><span class="comment"># [Screen 5] 模式选择</span>
-<span class="comment"># → 选择: device-image  (制作/恢复整机镜像)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 6] 镜像存储位置</span>
-<span class="comment"># → 选择: samba_server  (SMB/CIFS 网络共享)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 7] 网络配置</span>
-<span class="comment"># → 选择: dhcp  (自动获取 IP)</span>
-<span class="comment"># → 回车</span>
-<span class="comment"># → 等待网络连接成功（应显示获得 192.168.0.x 地址）</span>
-
-<span class="comment"># [Screen 8] SMB 协议版本</span>
-<span class="comment"># → 选择: default  (自动协商)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 9] NAS 服务器地址</span>
-<span class="comment"># → 输入: <span class="warn">192.168.0.81</span></span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 10] 域/工作组</span>
-<span class="comment"># → 输入: WORKGROUP  (或留空直接回车)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 11] NAS 用户名</span>
-<span class="comment"># → 输入: <span class="warn">labuser</span>  (或你的 NAS 管理员账号)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 12] 共享目录路径</span>
-<span class="comment"># → 输入: <span class="warn">/GoldenImages</span></span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 13] NAS 密码</span>
-<span class="comment"># → 输入密码（不显示字符，盲打）</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># → 如果连接成功，会显示挂载信息</span>
-<span class="comment"># → 按 Enter 继续</span></div>
-
-    <h3>第三阶段：执行备份</h3>
-    <div class="cmd"><span class="comment"># [Screen 14] 操作模式</span>
-<span class="comment"># → 选择: Beginner  (初学者模式，使用默认选项)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 15] 操作类型</span>
-<span class="comment"># → 选择: savedisk  (将整个磁盘保存为镜像)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 16] 镜像命名</span>
-<span class="comment"># → 输入: <span class="warn">ILab-GoldenImage-v1.0-20260615</span></span>
-<span class="comment"># → 回车</span>
-<span class="comment"># （命名规则：项目-类型-版本号-日期）</span>
-
-<span class="comment"># [Screen 17] 选择源磁盘</span>
-<span class="comment"># → 用空格键选中: nvme0n1  (GMK 的 NVMe SSD，约 1.9TB)</span>
-<span class="comment"># → 回车</span>
-<span class="comment"># （注意不要选 USB 设备！通常是 sda/sdb）</span>
-
-<span class="comment"># [Screen 18] 压缩方式</span>
-<span class="comment"># → 选择: -z1p  (gzip 并行压缩，速度快)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 19] 文件系统检查</span>
-<span class="comment"># → 选择: -fsck-src-part-y  (自动修复文件系统错误)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 20] 检查镜像完整性</span>
-<span class="comment"># → 选择: Yes, check the saved image  (建议选是)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 21] 加密</span>
-<span class="comment"># → 选择: -senc  (不加密，lab 内部使用)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 22] 完成后操作</span>
-<span class="comment"># → 选择: -p poweroff  (备份完自动关机)</span>
-<span class="comment"># → 回车</span>
-
-<span class="comment"># [Screen 23] 最终确认</span>
-<span class="comment"># → 输入: y</span>
-<span class="comment"># → 回车</span>
-<span class="comment"># → 可能再次确认: y</span></div>
-
-    <h3>第四阶段：等待</h3>
-    <div class="cmd"><span class="comment"># 备份进行中...</span>
-<span class="comment"># 屏幕会显示进度百分比和传输速度</span>
-<span class="comment"># 千兆网络下：~100MB/s</span>
-<span class="comment"># 假设系统+软件约 40GB 实际数据 → 约 7-10 分钟传输</span>
-<span class="comment"># 加上压缩和校验 → 总共约 15-25 分钟</span>
-<span class="comment">#</span>
-<span class="comment"># 完成后自动关机（如果选了 poweroff）</span>
-<span class="comment"># 关机后拔出 Clonezilla USB</span></div>
+<span class="comment"># 通过后即可进入日常运维模式：</span>
+<span class="comment"># 解冻更新 -> 验证 -> 重新冻结 -> 备份</span></div>
 </div>
 
-<div class="section success">
-    <h2>7.4 验证备份成功</h2>
-    <div class="cmd"><span class="comment"># 在另一台电脑上验证 NAS 中的镜像：</span>
-<span class="comment"># 1. 打开资源管理器 → \\192.168.0.81\GoldenImages\</span>
-<span class="comment"># 2. 应该看到文件夹: ILab-GoldenImage-v1.0-20260615</span>
-<span class="comment"># 3. 文件夹内应包含：</span>
-<span class="comment">#    • clonezilla-img           (版本信息)</span>
-<span class="comment">#    • parts                    (分区表信息)</span>
-<span class="comment">#    • disk-nvme0n1-pt.sf       (分区表备份)</span>
-<span class="comment">#    • nvme0n1p1.img.gz         (EFI 分区)</span>
-<span class="comment">#    • nvme0n1p2.img.gz         (MSR 分区)</span>
-<span class="comment">#    • nvme0n1p3.img.gz         (Windows 系统分区)</span>
-<span class="comment">#    • nvme0n1p4.img.gz         (恢复分区)</span>
-<span class="comment">#    • Info-dmi.txt             (硬件信息)</span>
-<span class="comment">#    • Info-lshw.txt            (详细硬件清单)</span>
-<span class="comment">#</span>
-<span class="comment"># 4. 检查总大小：应约 15-40GB（取决于安装的软件量）</span>
-<span class="comment"># 5. 如果文件夹存在且大小合理 = 备份成功 ✅</span></div>
-</div>
+<!-- ===== STEP 8 ===== -->
+<div class="step-divider"><span>🖥️ Step 8: 12 台工作站镜像分配（后台直配）</span></div>
 
 <div class="section success">
-    <h2>7.5 备份完成！下一步</h2>
-
+    <h2>8.1 是否可以后台直接分配镜像？</h2>
     <div class="alert alert-success">
-        <span class="alert-icon">🎉</span>
-        <div><strong>恭喜！Golden Image 制作完成！</strong><br>
-        你现在拥有一个标准化的系统镜像，可以批量部署到其余 11 台 GMK 工作站。</div>
+        <span class="alert-icon">✅</span>
+        <div><strong>可以。</strong>在完成 Step 5-7 的黄金镜像封装后，可在后台按“机器 → 镜像”直接分配并下发到指定工位，无需每台手动重装。</div>
     </div>
-
-    <h3>接下来的工作</h3>
     <table>
-        <tr><th>任务</th><th>说明</th><th>预计时间</th></tr>
-        <tr><td>批量还原到 11 台</td><td>Clonezilla restoredisk，3 个 U 盘并行</td><td>2 小时</td></tr>
-        <tr><td>每台 OOBE 设置</td><td>设机器名 GMK-WS01~12，运行 post-deploy 脚本</td><td>每台 5 分钟</td></tr>
-        <tr><td>安装回滚软件</td><td>Reboot Restore Rx Pro，设置基线</td><td>每台 10 分钟</td></tr>
-        <tr><td>Active Backup 注册</td><td>NAS 上确认所有设备在线</td><td>15 分钟</td></tr>
+        <tr><th>场景</th><th>后台动作</th><th>结果</th></tr>
+        <tr><td>新工位上线（WS-001 ~ WS-012）</td><td>绑定默认镜像（如 Win11-Base-v1）</td><td>首次开机自动部署统一基线</td></tr>
+        <tr><td>指定用户要特定镜像</td><td>把目标机器改绑到对应镜像（如 AI-Lab-v2）</td><td>下次部署窗口按新镜像重建</td></tr>
+        <tr><td>临时试验镜像</td><td>分配到试验分组（WS-Pilot）</td><td>验证通过后再推广到 WS-Lab-Prod</td></tr>
     </table>
+</div>
 
-    <h3>还原命令提示（在其他机器上恢复镜像）</h3>
-    <div class="cmd"><span class="comment"># Clonezilla 还原时选择：</span>
-<span class="comment"># device-image → samba_server → 192.168.0.81 → /GoldenImages</span>
-<span class="comment"># → Beginner → restoredisk</span>
-<span class="comment"># → 选择 ILab-GoldenImage-v1.0-20260615</span>
-<span class="comment"># → 选择目标磁盘 nvme0n1</span>
-<span class="comment"># → 确认覆盖 → 等待还原</span>
-<span class="comment">#</span>
-<span class="comment"># 还原后首次启动进入 OOBE：</span>
-<span class="comment"># • 地区：China</span>
-<span class="comment"># • 键盘：US</span>
-<span class="comment"># • 网络：跳过（Shift+F10 → oobe\bypassnro）或直接连</span>
-<span class="comment"># • 账户：本地账户 → Lab-Admin</span>
-<span class="comment"># • 密码：设置统一管理员密码</span></div>
+<div class="section success">
+    <h2>8.2 推荐后台分配流程（面向 12 台）</h2>
+    <div class="cmd"><span class="comment"># 1) 准备镜像目录（示例命名）</span>
+<span class="comment"># Win11-Base-v1（通用）</span>
+<span class="comment"># AI-Workshop-v1（演示环境）</span>
+<span class="comment"># Dev-Tools-v1（开发工具集）</span>
+
+<span class="comment"># 2) 建立设备分组</span>
+<span class="comment"># WS-Pilot: WS-001, WS-002</span>
+<span class="comment"># WS-Lab-Prod: WS-003 ~ WS-012</span>
+
+<span class="comment"># 3) 后台绑定规则</span>
+<span class="comment"># 组默认镜像：WS-Lab-Prod -> Win11-Base-v1</span>
+<span class="comment"># 机器覆盖规则：WS-007 -> AI-Workshop-v1（高优先级）</span>
+
+<span class="comment"># 4) 发布策略</span>
+<span class="comment"># 先发 WS-Pilot（2 台）验证，再全量发到 WS-Lab-Prod</span>
+
+<span class="comment"># 5) 验收清单（每台）</span>
+<span class="comment"># 镜像版本正确、Deep Freeze 状态正确、Z: 持久化正常、ABB 备份成功</span></div>
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>建议规则：</strong>优先使用“分组默认镜像 + 单机覆盖镜像”。这样既能保证 12 台统一，又能满足“这台机器要特定镜像”的临时诉求。</div>
+    </div>
+</div>
+
+<div class="section warning">
+    <h2>8.3 变更控制（避免误下发）</h2>
+    <table>
+        <tr><th>控制项</th><th>建议</th></tr>
+        <tr><td>镜像发布窗口</td><td>固定在非上课时段（如周三 02:00-04:00）</td></tr>
+        <tr><td>审批机制</td><td>生产组变更需二次确认（管理员 + 值班负责人）</td></tr>
+        <tr><td>回滚策略</td><td>保留上一版镜像 2 个周期，可一键切回</td></tr>
+        <tr><td>命名规范</td><td>镜像名包含用途与版本：<code>AI-Workshop-v1</code></td></tr>
+    </table>
 </div>
 
 <!-- Troubleshooting -->
 <div class="section warning">
-    <h2>🔧 常见问题排查</h2>
+    <h2>🔧 常见问题排查（Deep Freeze 模型）</h2>
     <table>
         <tr><th>问题</th><th>原因</th><th>解决</th></tr>
         <tr>
+            <td>重启后 C盘文件还在</td>
+            <td>设备未进入 Frozen / 策略未命中</td>
+            <td>检查设备分组与策略下发，强制同步并重启</td>
+        </tr>
+        <tr>
+            <td>Z盘文件丢失</td>
+            <td>误写到 C 盘或映射异常</td>
+            <td>核对路径与映射脚本，确认写入 Z:\ 后复测</td>
+        </tr>
+        <tr>
+            <td>ABB 显示等待设备</td>
+            <td>Agent 会话异常或连通性问题</td>
+            <td>Agent 断开重连、重启服务、检查端口 5510/443</td>
+        </tr>
+        <tr>
             <td>Sysprep 失败</td>
-            <td>Store 应用阻止</td>
-            <td>查看 <code>Panther\setuperr.log</code>，移除问题应用</td>
-        </tr>
-        <tr>
-            <td>Clonezilla 连不上 NAS</td>
-            <td>SMB 版本/密码错误</td>
-            <td>NAS 端临时启用 SMB1，或重新输入密码</td>
-        </tr>
-        <tr>
-            <td>Clonezilla 找不到 NVMe 盘</td>
-            <td>驱动缺失</td>
-            <td>使用最新版 Clonezilla（2024+），内含 NVMe 驱动</td>
-        </tr>
-        <tr>
-            <td>备份速度很慢（< 30MB/s）</td>
-            <td>网络瓶颈</td>
-            <td>确认用有线连接；检查网线是否千兆</td>
-        </tr>
-        <tr>
-            <td>还原后无法启动</td>
-            <td>UEFI/Legacy 不匹配</td>
-            <td>确保 BIOS 启动模式为 UEFI（不是 Legacy/CSM）</td>
-        </tr>
-        <tr>
-            <td>误开机进了 OOBE</td>
-            <td>忘记用 Clonezilla</td>
-            <td>镜像作废，需重新从 Step 1 开始</td>
+            <td>更新/BitLocker/Appx 阻塞</td>
+            <td>查看 <code>Panther\setuperr.log</code> 按 6.4 处理后重试</td>
         </tr>
     </table>
 </div>
@@ -656,7 +543,7 @@ Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -like <span cl
 </div>
 
 <div class="footer">
-    I-Lab Golden Image Guide | Step 5-7: Cleanup, Sysprep & Backup | Updated: 2026-06-23<br>
+    I-Lab Golden Image Guide | Step 5-8: Cleanup, Sysprep, Backup & Image Assignment | Updated: 2026-07-01<br>
     ⚠️ Sysprep 后不可逆 — 确保所有步骤验证通过后再执行
 </div>
 
