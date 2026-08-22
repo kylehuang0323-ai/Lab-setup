@@ -10,6 +10,7 @@ I-Lab 裸金属工作站部署文档站 — 12× GMK EVO-X2 + Synology NAS 统�
 |------|------|
 | [NAS 配置操作手册](https://kylehuang0323-ai.github.io/Lab-setup/) | Synology NAS 完整配置指南（共享文件夹、SMB/NFS、Docker 服务） |
 | [裸金属部署方案 v2.0](https://kylehuang0323-ai.github.io/Lab-setup/deployment-plan.html) | 整体架构、Golden Image、批量部署、维护 SOP |
+| [Proxmox VE 9.2 安装与 GPU 直通指南](https://kylehuang0323-ai.github.io/Lab-setup/proxmox-gpu-passthrough.html) | GMK EVO-X2 新手逐步安装、Radeon 8060S 直通、VM 本地直显与故障回滚 |
 | [驱动安装指南](https://kylehuang0323-ai.github.io/Lab-setup/driver-install.html) | GMK EVO-X2 全部驱动一键安装命令与验证清单 |
 | [镜像策略与基线管理](https://kylehuang0323-ai.github.io/Lab-setup/image-strategy.html) | 源镜像 vs 运维基线、激活保护、快照命名、Re-baseline 流程 |
 
@@ -24,6 +25,7 @@ I-Lab 裸金属工作站部署文档站 — 12× GMK EVO-X2 + Synology NAS 统�
 ```
 ├── index.html              # NAS 配置操作手册（GitHub Pages 首页）
 ├── deployment-plan.html    # 裸金属部署方案 v2.0
+├── proxmox-gpu-passthrough.html # Proxmox VE 9.2 + Radeon 8060S GPU 直通指南
 ├── driver-install.html     # GMK EVO-X2 驱动安装指南
 ├── image-strategy.html     # 镜像策略与基线管理
 ├── scripts/

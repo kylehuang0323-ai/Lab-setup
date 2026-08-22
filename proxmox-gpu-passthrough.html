@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>GMKtec EVO-X2：Proxmox VE 9.2-1 新手逐步安装、GPU 直通与 VM 直显指南</title>
+  <style>
+    :root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#5c667a;--line:#dce2ec;--blue:#2563eb;--blue2:#dbeafe;--green:#047857;--green2:#d1fae5;--amber:#92400e;--amber2:#fef3c7;--red:#b91c1c;--red2:#fee2e2;--purple:#6d28d9;--shadow:0 8px 26px rgba(31,41,55,.08);--code:#111827;--codeText:#e5edf8}
+    @media (prefers-color-scheme:dark){:root{--bg:#0b1020;--card:#121a2c;--text:#eef3ff;--muted:#aeb9cf;--line:#2b3854;--blue:#60a5fa;--blue2:#172d52;--green:#34d399;--green2:#123a32;--amber:#fbbf24;--amber2:#442f0c;--red:#f87171;--red2:#431818;--purple:#a78bfa;--shadow:none;--code:#070b14;--codeText:#e7eefb}}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:70px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.7 "Segoe UI","Microsoft YaHei",Arial,sans-serif}a{color:var(--blue)}code,kbd{font-family:Consolas,"Cascadia Code",monospace}kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:.05rem .35rem;background:var(--card)}
+    .topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:9px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.topbar strong{margin-right:auto}.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:7px 12px;cursor:pointer}.btn:hover{border-color:var(--blue)}.progress{height:8px;background:var(--line);border-radius:999px;overflow:hidden;width:180px}.progress>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .2s}.progressText{font-size:13px;color:var(--muted)}
+    .layout{max-width:1420px;margin:auto;display:grid;grid-template-columns:290px minmax(0,900px);gap:24px;padding:24px}.toc{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 92px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}.toc h2{font-size:17px;margin:0 0 9px}.toc a{display:block;text-decoration:none;color:var(--muted);padding:5px 7px;border-radius:6px;font-size:14px}.toc a:hover{background:var(--blue2);color:var(--blue)}main{min-width:0}.hero,.section{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:28px;margin-bottom:22px}.hero h1{font-size:clamp(28px,4vw,46px);line-height:1.15;margin:.25rem 0 1rem}.hero .lead{font-size:19px;color:var(--muted)}.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--blue2);color:var(--blue);font-weight:700;font-size:13px;margin:0 6px 6px 0}.badge.good{background:var(--green2);color:var(--green)}h2{font-size:28px;line-height:1.25;margin:.1rem 0 1rem;border-bottom:1px solid var(--line);padding-bottom:10px}h3{font-size:21px;margin:1.7rem 0 .7rem}h4{font-size:17px;margin:1.3rem 0 .5rem}.muted{color:var(--muted)}
+    .callout{border-left:5px solid var(--blue);background:var(--blue2);padding:14px 17px;border-radius:8px;margin:16px 0}.callout.danger{border-color:var(--red);background:var(--red2)}.callout.warn{border-color:var(--amber);background:var(--amber2)}.callout.good{border-color:var(--green);background:var(--green2)}.callout h3,.callout h4{margin:0 0 5px}.stop{font-weight:800;color:var(--red)}
+    .phase{display:grid;grid-template-columns:42px 1fr;gap:12px;margin:17px 0}.phaseNo{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:white;font-weight:800}.phaseBody{border:1px solid var(--line);border-radius:12px;padding:14px 17px}.phaseBody h3,.phaseBody h4{margin:0 0 5px}.task{display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:6px;border-radius:6px}.task:hover{background:color-mix(in srgb,var(--blue2) 45%,transparent)}.task input{margin-top:7px;width:18px;height:18px;accent-color:var(--green);flex:0 0 auto}.task:has(input:checked){color:var(--muted);text-decoration:line-through}.task:has(input:checked) code{text-decoration:none}
+    pre{position:relative;background:var(--code);color:var(--codeText);padding:18px;border-radius:10px;overflow:auto;line-height:1.5;border:1px solid #263248}pre code{font-size:14px}.copy{position:absolute;top:8px;right:8px;border:1px solid #46536b;background:#1f2937;color:#fff;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:12px}.copy:hover{background:#334155}.placeholder{color:#fbbf24;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.mini{border:1px solid var(--line);border-radius:10px;padding:13px;background:color-mix(in srgb,var(--card) 94%,var(--blue2))}.mini h4{margin:0 0 5px}.steps{counter-reset:step;list-style:none;padding:0}.steps>li{counter-increment:step;position:relative;padding:0 0 20px 54px;min-height:48px}.steps>li:before{content:counter(step);position:absolute;left:0;top:0;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--purple);color:white;font-weight:800}.steps>li:not(:last-child):after{content:"";position:absolute;left:17px;top:38px;bottom:2px;border-left:2px dashed var(--line)}
+    table{width:100%;border-collapse:collapse;display:block;overflow:auto;margin:13px 0}th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}th{background:var(--blue2)}.blank{display:inline-block;min-width:180px;border-bottom:1px solid var(--text);height:1.2em}.checkgate{border:2px solid var(--green);border-radius:12px;padding:15px;margin:18px 0}.checkgate h3,.checkgate h4{color:var(--green);margin:0 0 8px}.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.small{font-size:13px}.footer{text-align:center;color:var(--muted);padding:20px 10px 60px}.only-print{display:none}.cmdNote{font-size:13px;color:var(--muted);margin-top:-8px}
+    @media(max-width:980px){.layout{grid-template-columns:1fr;padding:14px}.toc{position:relative;top:0;max-height:none}.two{grid-template-columns:1fr}.topbar strong{width:100%}.progress{width:130px}.hero,.section{padding:20px}}
+    @media print{body{background:#fff;color:#000;font-size:11pt}.topbar,.toc,.copy{display:none!important}.layout{display:block;max-width:none;padding:0}.hero,.section{border:0;box-shadow:none;break-inside:auto;margin:0;padding:13mm 10mm}.section{page-break-before:always}.callout,.phaseBody,.mini,.checkgate{break-inside:avoid}.only-print{display:block}pre{white-space:pre-wrap;word-break:break-word;color:#000;background:#f3f4f6;border:1px solid #ccc}.task:has(input:checked){color:#000;text-decoration:none}a{color:#000;text-decoration:none}h2{font-size:20pt}h3{font-size:15pt}}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <strong>GMK EVO-X2 · PVE 9.2-1 新手部署指南</strong>
+    <span class="progressText" id="progressText">0 / 0 完成</span><div class="progress"><span id="progressBar"></span></div>
+    <a class="btn" href="index.html">返回文档首页</a>
+    <button class="btn" onclick="window.print()">打印 / 另存 PDF</button>
+    <button class="btn" onclick="clearProgress()">清空勾选</button>
+  </div>
+  <div class="layout">
+    <aside class="toc">
+      <h2>目录（必须按顺序）</h2>
+      <a href="#start">开始前说明</a><a href="#architecture">0. 目标与限制</a><a href="#preflight">1. 数据备份与准备</a><a href="#bios">2. BIOS/UEFI</a><a href="#install">3. 从U盘安装PVE</a><a href="#firstlogin">4. 首次登录与更新</a><a href="#vm">5. 创建Windows VM101</a><a href="#windows">6. 安装Windows/VirtIO</a><a href="#data-nas">7. D盘与NAS</a><a href="#pci">8. 识别PCI与IOMMU</a><a href="#vbios">9. 提取本机VBIOS</a><a href="#vfio">10. 配置VFIO</a><a href="#gpu">11. 首次GPU直通</a><a href="#display">12. 切换本地直显</a><a href="#usb">13. 键鼠、声音</a><a href="#autostart">14. 自动启动与验收</a><a href="#operation">15. 日常使用规则</a><a href="#troubleshoot">16. 故障排查</a><a href="#rollback">17. 紧急回滚</a><a href="#diagnostics">18. 诊断收集</a><a href="#finalcheck">19. 最终检查表</a><a href="#sources">参考资料</a>
+    </aside>
+    <main>
+      <header class="hero" id="start">
+        <span class="badge good">ISO 已核验</span><span class="badge">Proxmox VE 9.2-1</span><span class="badge">GMKtec EVO-X2</span>
+        <h1>第一次接触也能照做的<br>Proxmox + 8060S 直通指南</h1>
+        <p class="lead">目标：WS-001 启动 Proxmox，自动启动 Windows VM101，由 VM101 接管 Radeon 8060S，并从 EVO-X2 的 HDMI/DP 在本地显示 Windows 桌面。</p>
+        <div class="callout good"><strong>你的安装介质已确认：</strong><code>proxmox-ve_9.2-1.iso</code> 的 SHA256 为 <code>4E88FE416DF9B527624A175F24C9AA07C714D3332AFB1EE3DBF3879573EF2C6C</code>，与官方值完全一致。如果现有启动U盘就是由这份 ISO 制作，可直接使用。</div>
+        <p class="muted">文档版本：1.0 · 生成日期：2026-08-21 · 来源基线：同目录 Markdown 正式指南（2026-08-20）。本文不会自动执行任何安装或磁盘操作。</p>
+      </header>
+
+      <section class="section" id="architecture">
+        <h2>0. 先理解目标、风险和停止条件</h2>
+        <div class="callout danger">
+          <h3>最重要警告：安装 Proxmox 会清空所选内部磁盘</h3>
+          <p>如果现在的 Windows C盘和保留用 D盘位于同一块 NVMe 上，安装 Proxmox 到该 NVMe 后，<strong>C盘、D盘、冰点还原配置都可能被删除</strong>。NAS 中的数据不会因本机重装自动删除，但仍要确认同步已完成。</p>
+          <p class="stop">没有完成数据备份、没有确认目标磁盘时，禁止点击安装器最后的 Install。</p>
+        </div>
+        <div class="two">
+          <div class="mini"><h4>部署成功后的链路</h4><pre><code>WS-001 开机
+  ↓
+Proxmox VE 9.2
+  ↓ 延迟约30秒
+VM101（Windows 11）
+  ↓ 接管整块GPU
+Radeon 8060S → HDMI/DP → 显示器</code></pre></div>
+          <div class="mini"><h4>必须保留的管理链路</h4><pre><code>管理员电脑
+  ├─ Web: https://WS-001-IP:8006
+  ├─ SSH: root@WS-001-IP
+  └─ RDP: Windows-VM-IP</code></pre></div>
+        </div>
+        <h3>必须接受的限制</h3>
+        <label class="task"><input type="checkbox">我理解：8060S 整卡直通后，Proxmox 宿主机不能使用它。</label>
+        <label class="task"><input type="checkbox">我理解：一块 8060S 同时只能给一台 VM，不能由多台 VM 共享。</label>
+        <label class="task"><input type="checkbox">我理解：最终设置 <code>vga: none</code> 后，noVNC 没有画面是正常的，需看物理显示器或 RDP。</label>
+        <label class="task"><input type="checkbox">我理解：Windows Guest 可能触发 AMD reset bug；VM 重启/崩溃后再启动可能黑屏，需要冷重启整台 WS-001。</label>
+        <label class="task"><input type="checkbox">我理解：Proxmox 快照/备份不等于“每次重启自动还原”，如需原冰点体验必须另行设计。</label>
+        <div class="callout warn"><strong>顺序不可跳过：</strong>先保证 Web/SSH/RDP 三条恢复通道，再屏蔽宿主机显卡。每个阶段只有在“验收门”全部通过后才能继续。</div>
+      </section>
+
+      <section class="section" id="preflight">
+        <h2>1. 安装前：备份数据、填写网络信息、备齐文件</h2>
+        <h3>1.1 先保护原 Windows、D盘和 NAS 数据</h3>
+        <label class="task"><input type="checkbox">把原 D盘所有需要保留的文件复制到 NAS 或另一块外置硬盘。</label>
+        <label class="task"><input type="checkbox">从 NAS 随机打开至少 3 个已复制文件，确认不是只有快捷方式/占位文件。</label>
+        <label class="task"><input type="checkbox">导出浏览器书签、必要的软件许可证、SSH Key、模型配置和项目环境说明。</label>
+        <label class="task"><input type="checkbox">如未来可能恢复裸机方案，已制作 Windows 恢复介质或完整磁盘镜像。</label>
+        <label class="task"><input type="checkbox">记录当前 Windows/冰点还原配置和磁盘布局截图。</label>
+        <div class="checkgate"><h4>验收门 1A</h4>在 NAS/外盘确认重要数据可读取，并接受安装后原 C/D 分区可能消失，才继续。</div>
+
+        <h3>1.2 需要的硬件和文件</h3>
+        <div class="grid">
+          <div class="mini"><h4>已经具备</h4><ul><li>Proxmox VE 9.2-1 启动U盘</li><li>GMKtec EVO-X2</li><li>本机显示器、键盘、鼠标</li></ul></div>
+          <div class="mini"><h4>还需准备</h4><ul><li>管理员电脑（另一台电脑）</li><li>有线网线和可用网络</li><li>Windows 11 ISO</li><li>VirtIO Windows 驱动 ISO</li><li>AMD Ryzen AI Max+ 395 驱动</li></ul></div>
+          <div class="mini"><h4>强烈建议</h4><ul><li>第二个 USB 网卡作恢复链路</li><li>外置存储保存备份</li><li>手机拍 BIOS 原始设置</li><li>现场另有可联网设备查文档</li></ul></div>
+        </div>
+        <h3>1.3 先向网络管理员确认，不要猜</h3>
+        <table><tr><th>字段</th><th>填写</th><th>说明</th></tr>
+          <tr><td>节点名</td><td><code>ws-001</code></td><td>第一台工作站示例</td></tr>
+          <tr><td>完整主机名 FQDN</td><td><span class="blank"></span></td><td>使用现场内部 DNS 域；不要把示例原样输入</td></tr>
+          <tr><td>管理网卡</td><td><span class="blank"></span></td><td>接网线的物理网卡</td></tr>
+          <tr><td>固定管理 IP/CIDR</td><td><span class="blank"></span></td><td>例：<code>192.168.10.51/24</code>，仅为格式示例</td></tr>
+          <tr><td>Gateway</td><td><span class="blank"></span></td><td>现场网关</td></tr>
+          <tr><td>DNS Server</td><td><span class="blank"></span></td><td>现场 DNS</td></tr>
+          <tr><td>管理员邮箱</td><td><span class="blank"></span></td><td>用于系统告警</td></tr>
+          <tr><td>VM101 固定 IP/保留地址</td><td><span class="blank"></span></td><td>与 PVE 管理 IP 不同</td></tr>
+        </table>
+        <div class="callout warn"><strong>不要在企业网络自行占用一个看似空闲的IP。</strong>固定 IP 应由网络管理员分配，或在 DHCP 中按 MAC 设置 Reservation。</div>
+      </section>
+
+      <section class="section" id="bios">
+        <h2>2. 设置 EVO-X2 BIOS/UEFI</h2>
+        <p>开机看到 GMKtec 标志时，通常反复按 <kbd>Delete</kbd> 进入 BIOS；一次性启动菜单常见为 <kbd>F7</kbd>。具体按键随 BIOS 版本可能不同。</p>
+        <ol class="steps">
+          <li><strong>先拍照：</strong>进入 BIOS 后，用手机拍摄当前关键页面，特别是 Boot、Security、AMD CBS/CPU、UMA。</li>
+          <li><strong>启用虚拟化：</strong>找到 SVM / AMD Virtualization，设为 <code>Enabled</code>。</li>
+          <li><strong>启用 IOMMU：</strong>找到 IOMMU / AMD-Vi，设为 <code>Enabled</code>。</li>
+          <li><strong>启动模式：</strong>UEFI Boot = Enabled；CSM / Legacy Boot = Disabled（如有）。</li>
+          <li><strong>PCI 空间：</strong>Above 4G Decoding = Enabled（如有）；Re-Size BAR 保持默认或 Enabled。</li>
+          <li><strong>固定 UMA/VRAM：</strong>不要动态自动调整。首次验证建议 16 GB 或 32 GB；运行较大本地模型时再评估 32/64 GB。</li>
+          <li><strong>保存退出：</strong>按界面提示 Save Changes and Exit。</li>
+        </ol>
+        <table><tr><th>实际 BIOS 版本</th><th>实际 UMA</th><th>修改日期</th></tr><tr><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr></table>
+        <div class="callout warn">菜单名称找不到时不要随便改相似项目。先拍照并停止；不同固件版本的位置可能不同。</div>
+        <div class="checkgate"><h4>验收门 2</h4><label class="task"><input type="checkbox">已启用 SVM、IOMMU、UEFI，并记录固定 UMA；原值已有照片。</label></div>
+      </section>
+
+      <section class="section" id="install">
+        <h2>3. 从现有U盘安装 Proxmox VE 9.2-1</h2>
+        <div class="callout danger"><strong>本章包含擦盘操作。</strong>务必核对目标 NVMe 的型号和容量，不要仅凭“Disk 0”判断。连接了额外数据盘时，最好先物理断开，避免选错。</div>
+        <ol class="steps">
+          <li><strong>接线：</strong>关闭 EVO-X2，插入 Proxmox 启动U盘、网线、显示器、键盘；保留管理员电脑在同一可管理网络。</li>
+          <li><strong>从U盘启动：</strong>开机反复按一次性启动菜单键（常见 <kbd>F7</kbd>），选择带 <code>UEFI</code> 前缀的U盘。不要选内部 NVMe。</li>
+          <li><strong>选择安装方式：</strong>在 Proxmox 菜单选择 <code>Install Proxmox VE (Graphical)</code>。如果图形界面异常，可再使用 Terminal UI，但首次优先 Graphical。</li>
+          <li><strong>阅读并接受 EULA：</strong>选择 <code>I agree</code>。</li>
+          <li><strong>选择 Target Harddisk：</strong>按型号/容量确认内部目标 NVMe。单 NVMe 首次部署可保持默认 <code>ext4 + LVM-thin</code>；不要不理解就修改 Advanced Options。</li>
+          <li><strong>Country / Time zone / Keyboard：</strong>按实际地点选择。中国大陆一般 Time zone 为 <code>Asia/Shanghai</code>；键盘按实物布局选择。</li>
+          <li><strong>管理员凭据：</strong>设置强 root 密码并填写真实管理员邮箱。密码保存在受控密码库，不贴在机身上。</li>
+          <li><strong>Management Network：</strong>选择插着网线的网卡；填写前章确认的 FQDN、固定 IP/CIDR、Gateway、DNS。每项都核对。</li>
+          <li><strong>Summary 最后检查：</strong>重点确认 Target Disk、Hostname、IP、Gateway。确认备份完成后才点击 <code>Install</code>。</li>
+          <li><strong>重启：</strong>安装完成后选择 Reboot。在设备重新启动前拔出安装U盘，避免再次进入安装器。</li>
+        </ol>
+        <div class="callout good"><strong>正常现象：</strong>重启后本机控制台会显示访问地址，例如 <code>https://192.168.x.x:8006/</code> 和登录提示。先不要配置 GPU 直通。</div>
+        <div class="checkgate"><h4>验收门 3</h4>
+          <label class="task"><input type="checkbox">设备从内部 NVMe 启动到 Proxmox 登录界面。</label>
+          <label class="task"><input type="checkbox">屏幕显示的管理 IP 与计划值一致。</label>
+          <label class="task"><input type="checkbox">启动U盘已拔出并妥善保存。</label>
+        </div>
+      </section>
+
+      <section class="section" id="firstlogin">
+        <h2>4. 首次登录、固定管理链路和更新</h2>
+        <h3>4.1 从另一台管理员电脑登录 Web UI</h3>
+        <ol class="steps">
+          <li>打开浏览器，访问 <code>https://<span class="placeholder">实际WS-001-IP</span>:8006</code>。</li>
+          <li>自签名证书警告在首次安装时常见；确认 IP 正确后进入页面。</li>
+          <li>用户名输入 <code>root</code>，Realm 选择 <code>Linux PAM standard authentication</code>，使用安装时密码登录。</li>
+          <li>无订阅环境出现订阅提示不代表安装失败；关闭提示即可。</li>
+        </ol>
+        <h3>4.2 验证 SSH</h3>
+        <pre><code>ssh root@<span class="placeholder">实际WS-001-IP</span></code></pre>
+        <p class="cmdNote">黄色文字为占位符，必须换成实际值，不要连尖括号一起输入。</p>
+        <h3>4.3 配置官方软件仓库并更新</h3>
+        <p>有有效订阅时保留 Enterprise repository。无订阅时，在 Web UI 选择：</p>
+        <pre><code>Datacenter → ws-001 → Updates → Repositories
+→ 禁用无授权的 enterprise 项
+→ Add → No-Subscription（PVE）</code></pre>
+        <div class="callout warn">只使用 Proxmox 官方仓库。不要执行来源不明的“一键换源/优化脚本”。仓库界面如与描述不一致，先参考当前官方文档。</div>
+        <p>通过 Web UI 的 Shell 或 SSH 执行：</p>
+        <pre><code>apt update
+apt full-upgrade -y
+reboot</code></pre>
+        <p>重启后重新 SSH，记录版本：</p>
+        <pre><code>hostname
+ip -br addr
+pveversion -v
+uname -r</code></pre>
+        <h3>4.4 保存基础配置</h3>
+        <pre><code>mkdir -p /root/ws001-backup/baseline
+cp -a /etc/network/interfaces /root/ws001-backup/baseline/
+cp -a /etc/default/grub /root/ws001-backup/baseline/ 2&gt;/dev/null || true
+cp -a /etc/kernel/cmdline /root/ws001-backup/baseline/ 2&gt;/dev/null || true
+cp -a /etc/modules /root/ws001-backup/baseline/</code></pre>
+        <div class="checkgate"><h4>验收门 4（全部通过才能创建VM）</h4>
+          <label class="task"><input type="checkbox">Web UI 可登录。</label><label class="task"><input type="checkbox">SSH 可登录。</label><label class="task"><input type="checkbox">重启后管理 IP 不变化。</label><label class="task"><input type="checkbox"><code>pveversion -v</code> 和 <code>uname -r</code> 已记录。</label><label class="task"><input type="checkbox">尚未屏蔽 amdgpu，尚未配置 VFIO。</label>
+        </div>
+      </section>
+
+      <section class="section" id="vm">
+        <h2>5. 创建 Windows 11 VM101（此时不要直通GPU）</h2>
+        <h3>5.1 上传 ISO</h3>
+        <p>在 Web UI 依次选择 <code>ws-001 → local → ISO Images → Upload</code>，上传：</p>
+        <label class="task"><input type="checkbox">Windows 11 ISO。</label>
+        <label class="task"><input type="checkbox">最新 VirtIO Windows 驱动 ISO。</label>
+        <p>AMD 官方驱动可稍后在 Windows 内下载，或提前放在 NAS/持久数据盘。</p>
+        <h3>5.2 点击右上角 Create VM，逐页填写</h3>
+        <table><tr><th>页面</th><th>设置</th><th>建议值/说明</th></tr>
+          <tr><td>General</td><td>VM ID / Name</td><td><code>101</code> / <code>WS-001-VM101</code>；暂不勾选 Start at boot</td></tr>
+          <tr><td>OS</td><td>ISO / Guest OS</td><td>Windows 11 ISO；Microsoft Windows 11/2022</td></tr>
+          <tr><td>System</td><td>Machine / BIOS</td><td><code>q35</code> / <code>OVMF (UEFI)</code></td></tr>
+          <tr><td>System</td><td>EFI / TPM</td><td>Add EFI Disk；TPM 2.0；按Win11需求使用 Pre-Enroll keys</td></tr>
+          <tr><td>System</td><td>SCSI Controller</td><td><code>VirtIO SCSI single</code>；启用 QEMU Guest Agent</td></tr>
+          <tr><td>Disks</td><td>Bus / Device</td><td><code>SCSI</code>，系统盘建议至少 200 GB；容量按实际磁盘规划</td></tr>
+          <tr><td>CPU</td><td>Type / Sockets / Cores</td><td><code>host</code> / 1 / 初次 16–24 核，不分配全部核心</td></tr>
+          <tr><td>Memory</td><td>Memory / Ballooning</td><td>初次可 65536 MB；取消 Ballooning（最终 <code>balloon: 0</code>）</td></tr>
+          <tr><td>Network</td><td>Bridge / Model</td><td><code>vmbr0</code> / <code>VirtIO</code>，防火墙按现场策略</td></tr>
+          <tr><td>Confirm</td><td>Start after created</td><td>可勾选开始安装，但此时没有物理GPU直通</td></tr>
+        </table>
+        <div class="callout warn"><strong>内存规划：</strong>128 GB 是整机容量，固定 UMA/VRAM、Proxmox 宿主机和 VM 内存都要留余量。首次使用 64 GB 比直接给 96 GB 更容易排错；稳定后再调优。</div>
+      </section>
+
+      <section class="section" id="windows">
+        <h2>6. 用虚拟显示器安装 Windows、VirtIO 与远程通道</h2>
+        <ol class="steps">
+          <li><strong>打开控制台：</strong>选择 VM101 → Console，开始 Windows 安装。此时画面来自 Proxmox 虚拟显示器。</li>
+          <li><strong>看不到硬盘时加载驱动：</strong>将 VirtIO ISO 挂载为第二张光盘；在 Windows 的“你想将 Windows 安装在哪里？”选择“加载驱动程序”，浏览 VirtIO 光盘中的 <code>vioscsi\w11\amd64</code>。实际控制器不同才评估 <code>viostor</code>。</li>
+          <li><strong>完成 Windows 安装：</strong>按组织账户和安全策略配置，不通过脚本绕过企业要求。</li>
+          <li><strong>安装 VirtIO 工具：</strong>在 VirtIO 光盘运行 <code>virtio-win-gt-x64.msi</code>；确认网卡、存储等驱动完成。</li>
+          <li><strong>安装 QEMU Guest Agent：</strong>可从 VirtIO 光盘安装 <code>guest-agent\qemu-ga-x86_64.msi</code>；在 Windows 服务中确认 QEMU Guest Agent 正在运行。</li>
+          <li><strong>完成 Windows Update：</strong>重启并持续更新，直到没有待安装的关键更新。</li>
+          <li><strong>建立远程通道：</strong>Windows Pro/Enterprise 启用“设置 → 系统 → 远程桌面”；记录 VM IP，并从管理员电脑测试 RDP。</li>
+          <li><strong>记录网络：</strong>为 VM 使用网络管理员批准的固定 IP 或 DHCP Reservation，不要与 PVE 管理 IP 重复。</li>
+        </ol>
+        <p>在 Proxmox Shell 备份 VM 配置：</p>
+        <pre><code>mkdir -p /root/ws001-backup/vm101-pre-gpu
+qm config 101 | tee /root/ws001-backup/vm101-pre-gpu/101.conf.txt
+cp -a /etc/pve/qemu-server/101.conf /root/ws001-backup/vm101-pre-gpu/101.conf</code></pre>
+        <div class="checkgate"><h4>验收门 6</h4>
+          <label class="task"><input type="checkbox">noVNC 能看到 Windows。</label><label class="task"><input type="checkbox">Windows 网络正常。</label><label class="task"><input type="checkbox">管理员电脑可以 RDP 到 VM101。</label><label class="task"><input type="checkbox">设备管理器没有未知的 VirtIO 核心设备。</label><label class="task"><input type="checkbox">VM101 可以正常关机和重新启动（尚未直通GPU时）。</label><label class="task"><input type="checkbox">VM101 配置已备份。</label>
+        </div>
+      </section>
+
+      <section class="section" id="data-nas">
+        <h2>7. 重建“C盘可恢复、D盘保留、NAS共享”的数据结构</h2>
+        <div class="callout"><strong>推荐结构：</strong>不要只在同一个虚拟磁盘里划 C/D 两个分区。用两个独立虚拟磁盘，未来恢复系统盘时才不容易误覆盖 D盘。</div>
+        <pre><code>VM101
+├─ scsi0 → Windows C盘（系统、驱动、软件）
+├─ scsi1 → Windows D盘（模型、项目、缓存，持久）
+└─ NAS    → 重要成果、团队共享、正式备份</code></pre>
+        <h3>7.1 添加独立数据盘</h3>
+        <ol class="steps">
+          <li>关闭 VM101。</li><li>在 Web UI 选择 <code>VM101 → Hardware → Add → Hard Disk</code>。</li><li>Bus/Device 选择 <code>SCSI</code>，应生成 <code>scsi1</code>；选择容量和存储池。</li><li>启动 Windows，打开“磁盘管理”；初始化新磁盘为 GPT，创建卷并分配盘符 <code>D:</code>。</li><li>在磁盘卷标中明确写为 <code>VM101-DATA</code>。</li>
+        </ol>
+        <h3>7.2 连接 NAS</h3>
+        <p>在 Windows VM 内按组织批准方式映射网络驱动器。不要把 NAS 管理员凭据保存在所有共享用户都可读取的位置。建议按用户/项目授权，并启用 NAS 版本历史或备份。</p>
+        <label class="task"><input type="checkbox">D盘为独立的 <code>scsi1</code>，不是仅在系统虚拟盘内重新分区。</label>
+        <label class="task"><input type="checkbox">已从 VM 打开 NAS 上的测试文件并写入一个可删除的测试文件。</label>
+        <label class="task"><input type="checkbox">已明确：D盘用于设备级持久数据；NAS 才是重要成果正式保存位置。</label>
+        <div class="callout warn"><strong>关于自动还原：</strong>本文先完成稳定直通，不在此阶段配置“每次重启恢复 C盘”。Proxmox 快照不应被当成长期备份。后续如需共享工作站自动还原，应单独评估 Windows 写入过滤、模板克隆或受控恢复流程。</div>
+      </section>
+
+      <section class="section" id="pci">
+        <h2>8. 识别 WS-001 自己的 PCI 地址和 IOMMU 分组</h2>
+        <p>在 PVE Shell/SSH 中执行。<strong>不要抄其他设备的 <code>c5:00.x</code></strong>，每台机器都可能不同。</p>
+        <pre><code>lspci -nn | grep -Ei 'VGA|Display|Audio|USB|Encryption|Crypto'
+lspci -nnk -d 1002:1586
+lspci -nnk -d 1002:1640</code></pre>
+        <p>Strix Halo 8060S 常见 ID：</p>
+        <pre><code>GPU：       1002:1586
+GPU Audio： 1002:1640</code></pre>
+        <p>查看 IOMMU 分组：</p>
+        <pre><code>for g in /sys/kernel/iommu_groups/*; do
+  echo "IOMMU GROUP ${g##*/}"
+  for d in "$g"/devices/*; do
+    lspci -nns "${d##*/}"
+  done
+done</code></pre>
+        <table><tr><th>项目</th><th>WS-001 实际值</th></tr><tr><td>GPU PCI 地址（1002:1586）</td><td class="blank"></td></tr><tr><td>GPU Audio PCI 地址（1002:1640）</td><td class="blank"></td></tr><tr><td>GPU IOMMU Group</td><td class="blank"></td></tr><tr><td>可选 USB Controller</td><td class="blank"></td></tr><tr><td>管理网卡 PCI 地址（严禁直通）</td><td class="blank"></td></tr></table>
+        <div class="callout danger">不要为了“让它能启动”直接开启 ACS override 或 unsafe interrupts；这会削弱隔离。IOMMU 分组不清楚时停止并保留命令输出。</div>
+      </section>
+
+      <section class="section" id="vbios">
+        <h2>9. 在屏蔽 amdgpu 前，提取 WS-001 自己的 8060S VBIOS</h2>
+        <div class="callout danger"><strong>禁止：</strong>不要直接使用网上ROM或另一台 EVO-X2 的 ROM 作为生产基线。VFCT 不存在或无法得到 1002:1586 时，本阶段停止。</div>
+        <h3>9.1 确认 VFCT 并安装编译器</h3>
+        <pre><code>apt update
+apt install -y build-essential
+ls -l /sys/firmware/acpi/tables/VFCT</code></pre>
+        <p>若最后一条显示文件存在，继续；不存在则停止并查阅原 Markdown 指南的 VBIOS 备选路径。</p>
+        <h3>9.2 创建提取程序</h3>
+        <p>执行 <code>nano /root/vbios.c</code>，完整粘贴下面代码；按 <kbd>Ctrl+O</kbd> 保存、Enter确认、<kbd>Ctrl+X</kbd> 退出。</p>
+        <pre><code>#include &lt;stdint.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+typedef uint32_t ULONG;
+typedef uint8_t UCHAR;
+typedef uint16_t USHORT;
+
+typedef struct {
+    ULONG Signature; ULONG TableLength; UCHAR Revision; UCHAR Checksum;
+    UCHAR OemId[6]; UCHAR OemTableId[8]; ULONG OemRevision;
+    ULONG CreatorId; ULONG CreatorRevision;
+} AMD_ACPI_DESCRIPTION_HEADER;
+
+typedef struct {
+    AMD_ACPI_DESCRIPTION_HEADER SHeader; UCHAR TableUUID[16];
+    ULONG VBIOSImageOffset; ULONG Lib1ImageOffset; ULONG Reserved[4];
+} UEFI_ACPI_VFCT;
+
+typedef struct {
+    ULONG PCIBus; ULONG PCIDevice; ULONG PCIFunction;
+    USHORT VendorID; USHORT DeviceID; USHORT SSVID; USHORT SSID;
+    ULONG Revision; ULONG ImageLength;
+} VFCT_IMAGE_HEADER;
+
+typedef struct { VFCT_IMAGE_HEADER VbiosHeader; UCHAR VbiosContent[1]; }
+GOP_VBIOS_CONTENT;
+
+int main(int argc, char **argv) {
+    FILE *fp_vfct, *fp_vbios; UEFI_ACPI_VFCT *pvfct;
+    char vbios_name[0x400];
+    if (!(fp_vfct=fopen("/sys/firmware/acpi/tables/VFCT","rb"))) {
+        perror(argv[0]); return -1;
+    }
+    if (!(pvfct=malloc(sizeof(UEFI_ACPI_VFCT)))) { perror(argv[0]); return -1; }
+    if (sizeof(UEFI_ACPI_VFCT)!=fread(pvfct,1,sizeof(UEFI_ACPI_VFCT),fp_vfct)) {
+        fprintf(stderr,"failed to read VFCT header\n"); return -1;
+    }
+    ULONG offset=pvfct-&gt;VBIOSImageOffset, tbl_size=pvfct-&gt;SHeader.TableLength;
+    if (!(pvfct=realloc(pvfct,tbl_size))) { perror(argv[0]); return -1; }
+    if (tbl_size-sizeof(UEFI_ACPI_VFCT)!=
+        fread(pvfct+1,1,tbl_size-sizeof(UEFI_ACPI_VFCT),fp_vfct)) {
+        fprintf(stderr,"failed to read VFCT body\n"); return -1;
+    }
+    fclose(fp_vfct);
+    while (offset&lt;tbl_size) {
+        GOP_VBIOS_CONTENT *vbios=(GOP_VBIOS_CONTENT *)((char *)pvfct+offset);
+        VFCT_IMAGE_HEADER *vhdr=&amp;vbios-&gt;VbiosHeader;
+        if (!vhdr-&gt;ImageLength) break;
+        snprintf(vbios_name,sizeof(vbios_name),"vbios_%x_%x.bin",
+                 vhdr-&gt;VendorID,vhdr-&gt;DeviceID);
+        if (!(fp_vbios=fopen(vbios_name,"wb"))) { perror(argv[0]); return -1; }
+        if (vhdr-&gt;ImageLength!=fwrite(&amp;vbios-&gt;VbiosContent,1,
+            vhdr-&gt;ImageLength,fp_vbios)) return -1;
+        fclose(fp_vbios);
+        printf("dump vbios %x:%x to %s\n",vhdr-&gt;VendorID,vhdr-&gt;DeviceID,vbios_name);
+        offset+=sizeof(VFCT_IMAGE_HEADER)+vhdr-&gt;ImageLength;
+    }
+    free(pvfct); return 0;
+}</code></pre>
+        <h3>9.3 编译、提取、校验</h3>
+        <pre><code>cd /root
+gcc vbios.c -O2 -o vbios
+./vbios
+ls -lh vbios_*.bin
+install -m 0644 /root/vbios_1002_1586.bin /usr/share/kvm/ws001-vbios-8060s.bin
+sha256sum /usr/share/kvm/ws001-vbios-8060s.bin | tee /root/ws001-vbios-sha256.txt
+hexdump -C /usr/share/kvm/ws001-vbios-8060s.bin | head</code></pre>
+        <div class="checkgate"><h4>验收门 9</h4>
+          <label class="task"><input type="checkbox"><code>/usr/share/kvm/ws001-vbios-8060s.bin</code> 存在且不是0字节。</label><label class="task"><input type="checkbox">hexdump 开头可见常见 ROM 标记 <code>55 aa</code>。</label><label class="task"><input type="checkbox">VBIOS SHA256 已记录并另存。</label><label class="task"><input type="checkbox">Web UI 与 SSH 仍然正常。</label>
+        </div>
+      </section>
+
+      <section class="section" id="vfio">
+        <h2>10. 配置 IOMMU / VFIO，让宿主机释放 8060S</h2>
+        <div class="callout danger">执行本章后，PVE 本机屏幕在内核启动阶段变黑可能是正常的。从这里开始必须依赖网络管理。Web/SSH 不稳定时禁止继续。</div>
+        <h3>10.1 先判断 Bootloader，只改对应的一种</h3>
+        <pre><code>proxmox-boot-tool status
+efibootmgr -v
+findmnt /</code></pre>
+        <h4>如果使用 GRUB</h4>
+        <pre><code>cp -a /etc/default/grub /etc/default/grub.pre-vfio
+nano /etc/default/grub</code></pre>
+        <p>把参数追加到已有 <code>GRUB_CMDLINE_LINUX_DEFAULT</code>，不要删除原参数。例如：</p>
+        <pre><code>GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt initcall_blacklist=sysfb_init"
+update-grub</code></pre>
+        <h4>如果使用 systemd-boot / proxmox-boot-tool</h4>
+        <pre><code>cp -a /etc/kernel/cmdline /etc/kernel/cmdline.pre-vfio
+nano /etc/kernel/cmdline</code></pre>
+        <p>保持一整行，在原 root 参数后追加：</p>
+        <pre><code>amd_iommu=on iommu=pt initcall_blacklist=sysfb_init
+proxmox-boot-tool refresh</code></pre>
+        <div class="callout warn">不要同时盲改 GRUB 和 <code>/etc/kernel/cmdline</code>。不确定 Bootloader 类型时停止。</div>
+        <h3>10.2 加载 VFIO 模块</h3>
+        <pre><code>for m in vfio vfio_iommu_type1 vfio_pci; do
+  grep -qxF "$m" /etc/modules || echo "$m" &gt;&gt; /etc/modules
+done</code></pre>
+        <h3>10.3 绑定 GPU 和 GPU Audio</h3>
+        <pre><code>mkdir -p /root/ws001-backup/pre-vfio
+cp -a /etc/modprobe.d /root/ws001-backup/pre-vfio/
+
+cat &gt;/etc/modprobe.d/vfio.conf &lt;&lt;'EOF'
+options vfio-pci ids=1002:1586,1002:1640 disable_vga=1
+softdep amdgpu pre: vfio-pci
+softdep radeon pre: vfio-pci
+softdep snd_hda_intel pre: vfio-pci
+EOF
+
+cat &gt;/etc/modprobe.d/pve-blacklist.conf &lt;&lt;'EOF'
+blacklist amdgpu
+blacklist radeon
+blacklist snd_hda_intel
+EOF
+
+update-initramfs -u -k all
+cat /etc/modprobe.d/vfio.conf
+cat /etc/modprobe.d/pve-blacklist.conf
+cat /etc/modules</code></pre>
+        <h3>10.4 重启前强制检查</h3>
+        <label class="task"><input type="checkbox">管理 IP 固定，Web UI 与 SSH 都正常。</label><label class="task"><input type="checkbox">管理网卡没有出现在任何直通配置中。</label><label class="task"><input type="checkbox">VM101 已关闭。</label><label class="task"><input type="checkbox"><code>/root/ws001-backup</code> 存在。</label><label class="task"><input type="checkbox">知道如何使用 BIOS/启动菜单进入旧内核或恢复模式。</label>
+        <p>全部确认后才执行：</p><pre><code>reboot</code></pre>
+        <h3>10.5 从管理员电脑验收</h3>
+        <pre><code>cat /proc/cmdline
+dmesg | grep -Ei 'AMD-Vi|IOMMU|interrupt remapping' | head -80
+lsmod | grep vfio
+lspci -nnk -d 1002:1586
+lspci -nnk -d 1002:1640</code></pre>
+        <div class="checkgate"><h4>验收门 10</h4><p>GPU 和 GPU Audio 都必须显示：</p><pre><code>Kernel driver in use: vfio-pci</code></pre><label class="task"><input type="checkbox">1002:1586 使用 vfio-pci。</label><label class="task"><input type="checkbox">1002:1640 使用 vfio-pci。</label><label class="task"><input type="checkbox">Web/SSH 仍然可用。</label><p class="stop">如果仍显示 amdgpu 或 snd_hda_intel，不要启动 VM101。</p></div>
+      </section>
+
+      <section class="section" id="gpu">
+        <h2>11. 第一次给 VM101 添加 GPU：保留虚拟显示器和 RDP</h2>
+        <p>先把第8章记录的实际地址代入。下面的 <code>c5:00.0</code> 仅为格式示例，不能照抄。</p>
+        <label class="task"><input type="checkbox">Windows RDP 已验证。</label><label class="task"><input type="checkbox">VM101 仍有虚拟显示器。</label><label class="task"><input type="checkbox">AMD Ryzen AI Max+ 395 官方驱动已下载到 Guest/NAS。</label><label class="task"><input type="checkbox">显示器已接 EVO-X2 HDMI/DP。</label>
+        <p>添加 GPU 和 GPU Audio：</p>
+        <pre><code>qm set 101 --hostpci0 <span class="placeholder">实际GPU_PCI</span>,pcie=1,romfile=ws001-vbios-8060s.bin
+qm set 101 --hostpci1 <span class="placeholder">实际GPU_AUDIO_PCI</span>,pcie=1,rombar=0
+qm config 101</code></pre>
+        <p>实际命令格式示例：</p>
+        <pre><code>qm set 101 --hostpci0 0000:c5:00.0,pcie=1,romfile=ws001-vbios-8060s.bin
+qm set 101 --hostpci1 0000:c5:00.1,pcie=1,rombar=0</code></pre>
+        <div class="callout warn">首次测试不要加 <code>x-vga=1</code>，也不要设 <code>vga: none</code>。先保留 noVNC/RDP 作为救援画面。</div>
+        <h3>11.1 首次启动并安装AMD驱动</h3>
+        <pre><code>qm start 101</code></pre>
+        <ol class="steps"><li>通过 noVNC 或 RDP 登录 Windows。</li><li>安装 Ryzen AI Max+ 395 官方 AMD 驱动。</li><li>打开设备管理器，确认 Radeon 8060S 存在且没有 Code 43。</li><li>记录 AMD 驱动版本。</li><li>在 Windows 内选择“关机”，不要点“重新启动”。</li><li>必要时从 PVE 确认：<code>qm status 101</code>。</li></ol>
+        <div class="callout warn"><strong>驱动安装崩溃时：</strong>冷重启 WS-001；临时将 VM CPU Type 改为 <code>x86-64-v4</code> 完成驱动安装；关机后改回 <code>host</code>；再冷重启验证。不要先套用来源不明的 AMDGopDriver.rom。</div>
+        <div class="checkgate"><h4>验收门 11</h4><label class="task"><input type="checkbox">VM101 能启动且 RDP 可连接。</label><label class="task"><input type="checkbox">设备管理器识别 Radeon 8060S。</label><label class="task"><input type="checkbox">没有 Code 43。</label><label class="task"><input type="checkbox">Windows 已完整关机。</label></div>
+      </section>
+
+      <section class="section" id="display">
+        <h2>12. 将 8060S 切换为 VM101 的本地主显示器</h2>
+        <h3>12.1 备份已工作的VM配置</h3>
+        <pre><code>mkdir -p /root/ws001-backup/vm101-gpu-working
+cp -a /etc/pve/qemu-server/101.conf /root/ws001-backup/vm101-gpu-working/101.conf</code></pre>
+        <h3>12.2 设置 x-vga 并关闭虚拟显示器</h3>
+        <pre><code>qm set 101 --hostpci0 <span class="placeholder">实际GPU_PCI</span>,pcie=1,romfile=ws001-vbios-8060s.bin,x-vga=1
+qm set 101 --vga none
+qm config 101</code></pre>
+        <p>关键配置应包含：</p>
+        <pre><code>bios: ovmf
+machine: q35
+cpu: host
+balloon: 0
+vga: none
+hostpci0: 0000:<span class="placeholder">实际GPU地址</span>,pcie=1,romfile=ws001-vbios-8060s.bin,x-vga=1
+hostpci1: 0000:<span class="placeholder">实际音频地址</span>,pcie=1,rombar=0</code></pre>
+        <h3>12.3 冷启动直显测试</h3>
+        <ol class="steps"><li>关闭 WS-001，而不只是停止VM。</li><li>等待 15–30 秒。</li><li>确认显示器输入源和 EVO-X2 HDMI/DP 连接正确。</li><li>启动 WS-001；等待 PVE 网络上线。</li><li>从管理员电脑 SSH，执行 <code>qm status 101</code>，确认 VM 未运行。</li><li>执行 <code>qm start 101</code>。</li><li>等待 AMD 驱动接管，物理显示器应出现 Windows 登录画面。</li><li>从管理员电脑同时测试 PVE Web UI 和 Windows RDP。</li></ol>
+        <div class="callout good"><strong>正常时序：</strong>BIOS/早期启动有画面 → PVE 屏蔽显卡后可能黑屏 → VM101 启动后出现 Windows。此时 noVNC 无画面是正常的。</div>
+        <div class="checkgate"><h4>验收门 12</h4><label class="task"><input type="checkbox">物理显示器出现 Windows 登录画面。</label><label class="task"><input type="checkbox">分辨率、刷新率正常。</label><label class="task"><input type="checkbox">设备管理器无 Code 43。</label><label class="task"><input type="checkbox">RDP 可用。</label><label class="task"><input type="checkbox">PVE Web UI 可用。</label></div>
+      </section>
+
+      <section class="section" id="usb">
+        <h2>13. 键盘、鼠标和 HDMI/DP 声音</h2>
+        <h3>13.1 首轮最安全：按 USB 设备直通</h3>
+        <pre><code>VM101 → Hardware → Add → USB Device
+→ Use USB Vendor/Device ID → 选择实际键盘或鼠标</code></pre>
+        <p>可先在PVE Shell执行 <code>lsusb</code> 识别设备。一次只加一个并测试，避免把安装U盘或恢复网卡交给VM。</p>
+        <h3>13.2 固定工位：可选整控制器直通</h3>
+        <pre><code>lspci -nn | grep -i USB
+qm set 101 --hostpci2 0000:<span class="placeholder">实际USB控制器地址</span>,pcie=1,rombar=0</code></pre>
+        <div class="callout danger">只有确认该控制器对应哪些物理端口、且不包含管理网卡/宿主机关键设备时才能做。管理始终通过网络完成。</div>
+        <h3>13.3 声音</h3>
+        <p>先确认 <code>1002:1640</code> GPU Audio 已直通并在 Windows 安装 AMD 音频驱动。仍无 HDMI/DP 声音时，再依据本机 <code>lspci</code> 与 IOMMU 分组评估独立 HD Audio 功能；不要照抄其他机器的 <code>c5:00.6</code>。</p>
+      </section>
+
+      <section class="section" id="autostart">
+        <h2>14. 自动启动与连续三轮冷启动验收</h2>
+        <div class="callout warn">手动冷启动直显未连续成功 3 次前，不启用自动启动。</div>
+        <h3>14.1 三轮手工验证</h3>
+        <p>每轮都执行：Windows 正常关机 → 关闭 WS-001 → 等待30秒 → 启动 WS-001 → 网络上线后只启动 VM101 一次。</p>
+        <table><tr><th>轮次</th><th>PVE在线</th><th>VM Running</th><th>本机显示</th><th>键鼠</th><th>RDP</th><th>Web UI</th><th>Code 43</th></tr><tr><td>1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>
+        <h3>14.2 启用自动启动</h3>
+        <pre><code>qm set 101 --onboot 1
+qm set 101 --startup order=1,up=30,down=90
+pvenode config set --startall-onboot-delay 30
+qm config 101 | grep -E 'onboot|startup'
+pvenode config get</code></pre>
+        <h3>14.3 再做三轮自动启动验证</h3>
+        <label class="task"><input type="checkbox">只有 VM101 配置使用这块 8060S。</label><label class="task"><input type="checkbox">WS-001 上电后 VM101 自动进入 Running。</label><label class="task"><input type="checkbox">用户无需登录 PVE 即可在本机看到 Windows。</label><label class="task"><input type="checkbox">连续3轮冷启动均无 Code 43/黑屏。</label>
+      </section>
+
+      <section class="section" id="operation">
+        <h2>15. 交付用户后的日常使用规则</h2>
+        <div class="grid">
+          <div class="mini"><h4>用户应该做</h4><ul><li>重要文件保存到 NAS</li><li>D盘仅作设备级持久数据</li><li>结束时在 Windows 选择“关机”</li><li>黑屏时联系管理员</li></ul></div>
+          <div class="mini"><h4>用户不要做</h4><ul><li>不要频繁“重新启动”Windows VM</li><li>不要反复断电</li><li>不要打开 PVE 管理界面</li><li>不要在D盘保存长期凭据</li></ul></div>
+          <div class="mini"><h4>管理员应该做</h4><ul><li>保护 root 与管理网络</li><li>维护 PVE/Windows/AMD 驱动基线</li><li>备份VM配置和重要数据</li><li>记录冷启动、Code 43和版本</li></ul></div>
+        </div>
+        <div class="callout warn"><strong>reset bug 操作原则：</strong>冷启动第一次正常，VM 重启或崩溃后黑屏时，不要反复 <code>qm stop/start</code>。正常关闭VM/宿主机，等待15–30秒后冷启动整台设备，并且只启动VM101一次。</div>
+      </section>
+
+      <section class="section" id="troubleshoot">
+        <h2>16. 新手故障分流：先判断是哪一层</h2>
+        <table><tr><th>现象</th><th>先做什么</th><th>常见判断</th></tr>
+          <tr><td>PVE网页打不开</td><td>检查交换机/网线、Ping管理IP、本机控制台IP</td><td>管理网络或IP问题；先恢复网络，不处理GPU</td></tr>
+          <tr><td>VM101不是Running</td><td><code>qm status 101</code>、<code>qm start 101</code></td><td>读取启动错误，不要只盯显示器</td></tr>
+          <tr><td>VM Running但无信号</td><td>先测试RDP，再查设备管理器</td><td>输入源、AMD驱动、x-vga、VBIOS或reset bug</td></tr>
+          <tr><td>noVNC无画面</td><td>看 <code>vga: none</code> 是否已设置</td><td>最终物理GPU模式下通常正常</td></tr>
+          <tr><td>Windows Code 43</td><td>核对 cpu/q35/OVMF/vfio/VBIOS/官方驱动</td><td>不要首先安装第三方ROM</td></tr>
+          <tr><td>第一次正常，重启VM后黑屏</td><td>冷重启整台WS-001</td><td>高度符合AMD reset bug</td></tr>
+        </table>
+        <h3>16.1 黑屏时的只读命令</h3>
+        <pre><code>qm status 101
+qm config 101
+journalctl -b --no-pager | grep -Ei 'vfio|qemu|101|rom|bar|amdgpu' | tail -200
+lspci -nnk -d 1002:1586
+lspci -nnk -d 1002:1640</code></pre>
+        <h3>16.2 比较实际 PCI 与 VM 配置</h3>
+        <pre><code>lspci -nn | grep -Ei 'VGA|Display|Audio'
+qm config 101 | grep hostpci</code></pre>
+        <h3>16.3 检查 VBIOS</h3>
+        <pre><code>ls -lh /usr/share/kvm/ws001-vbios-8060s.bin
+sha256sum /usr/share/kvm/ws001-vbios-8060s.bin
+hexdump -C /usr/share/kvm/ws001-vbios-8060s.bin | head</code></pre>
+        <div class="callout danger">如果管理网络也不可用，不要持续强制断电尝试。进入下一章的本地恢复流程。</div>
+      </section>
+
+      <section class="section" id="rollback">
+        <h2>17. 紧急回滚：恢复虚拟显示器和宿主机显卡</h2>
+        <h3>17.1 仍可 SSH 时</h3>
+        <pre><code>qm stop 101
+qm set 101 --delete hostpci0
+qm set 101 --delete hostpci1
+qm set 101 --delete hostpci2 2&gt;/dev/null || true
+qm set 101 --vga std
+qm set 101 --onboot 0
+
+mv /etc/modprobe.d/vfio.conf /etc/modprobe.d/vfio.conf.disabled
+mv /etc/modprobe.d/pve-blacklist.conf /etc/modprobe.d/pve-blacklist.conf.disabled</code></pre>
+        <p>只执行与你实际 Bootloader 对应的一组：</p>
+        <h4>GRUB</h4><pre><code>cp -a /etc/default/grub.pre-vfio /etc/default/grub
+update-grub</code></pre>
+        <h4>systemd-boot</h4><pre><code>cp -a /etc/kernel/cmdline.pre-vfio /etc/kernel/cmdline
+proxmox-boot-tool refresh</code></pre>
+        <p>最后执行：</p><pre><code>update-initramfs -u -k all
+reboot</code></pre>
+        <h3>17.2 网络也无法访问时</h3>
+        <ol class="steps"><li>在 BIOS/UEFI 启动菜单选择 Proxmox。</li><li>在 GRUB/systemd-boot 菜单临时编辑内核命令行，删除 <code>initcall_blacklist=sysfb_init</code> 和本次增加的 VFIO/IOMMU 参数。</li><li>启动恢复环境，将 <code>vfio.conf</code> 和 <code>pve-blacklist.conf</code> 改名。</li><li>恢复预先备份的 Bootloader 配置。</li><li>更新 initramfs/Bootloader 后重启。</li><li>恢复网络后先执行 <code>qm set 101 --onboot 0</code>。</li></ol>
+      </section>
+
+      <section class="section" id="diagnostics">
+        <h2>18. 一键收集只读诊断信息</h2>
+        <p>下面脚本只收集信息，不修改配置。创建并运行：</p>
+        <pre><code>cat &gt;/root/collect-ws001-passthrough.sh &lt;&lt;'EOF'
+#!/bin/bash
+set -u
+OUT="/root/ws001-passthrough-diagnostics-$(date +%F-%H%M%S).txt"
+{
+  echo '===== DATE ====='; date -Is
+  echo '===== VERSION ====='; pveversion -v; uname -a
+  echo '===== BOOTLOADER ====='; proxmox-boot-tool status 2&gt;&amp;1; efibootmgr -v 2&gt;&amp;1
+  echo '===== CMDLINE ====='; cat /proc/cmdline
+  echo '===== VM101 STATUS ====='; qm status 101 2&gt;&amp;1
+  echo '===== VM101 CONFIG ====='; qm config 101 2&gt;&amp;1
+  echo '===== PCI ====='; lspci -nn
+  echo '===== GPU DRIVER ====='; lspci -nnk -d 1002:1586 2&gt;&amp;1
+  echo '===== AUDIO DRIVER ====='; lspci -nnk -d 1002:1640 2&gt;&amp;1
+  echo '===== IOMMU ====='; dmesg | grep -Ei 'AMD-Vi|IOMMU|interrupt remapping' | tail -200
+  echo '===== VFIO MODULES ====='; lsmod | grep vfio
+  echo '===== CONFIG FILES ====='; cat /etc/modules
+  cat /etc/modprobe.d/vfio.conf 2&gt;&amp;1
+  cat /etc/modprobe.d/pve-blacklist.conf 2&gt;&amp;1
+  echo '===== ROM ====='; ls -lh /usr/share/kvm/*vbios* 2&gt;&amp;1
+  sha256sum /usr/share/kvm/*vbios* 2&gt;&amp;1
+  echo '===== CURRENT BOOT LOG ====='
+  journalctl -b --no-pager | grep -Ei 'vfio|qemu|101|rom|bar|amdgpu' | tail -400
+} &gt;"$OUT" 2&gt;&amp;1
+chmod 600 "$OUT"
+echo "$OUT"
+EOF
+chmod +x /root/collect-ws001-passthrough.sh
+/root/collect-ws001-passthrough.sh</code></pre>
+        <div class="callout warn">对外发送诊断文件前，遮盖公网IP、MAC、内部域名、用户名等不需要分享的信息。</div>
+      </section>
+
+      <section class="section" id="finalcheck">
+        <h2>19. 最终部署检查表</h2>
+        <h3>宿主机</h3>
+        <label class="task"><input type="checkbox">Proxmox VE 9.2 已更新，版本和内核已记录。</label><label class="task"><input type="checkbox">管理 IP 固定，Web UI/SSH 可用。</label><label class="task"><input type="checkbox">SVM/IOMMU启用，固定UMA已记录。</label><label class="task"><input type="checkbox">8060S 1002:1586 使用 vfio-pci。</label><label class="task"><input type="checkbox">GPU Audio 1002:1640 使用 vfio-pci。</label><label class="task"><input type="checkbox">管理网卡没有直通。</label><label class="task"><input type="checkbox">本机VBIOS已保存并校验。</label><label class="task"><input type="checkbox">回滚文件已保存。</label>
+        <h3>VM101</h3>
+        <label class="task"><input type="checkbox">q35 + OVMF、cpu: host、balloon: 0。</label><label class="task"><input type="checkbox">GPU/Audio PCI地址来自WS-001实际检测。</label><label class="task"><input type="checkbox">x-vga=1、vga: none。</label><label class="task"><input type="checkbox">AMD官方驱动正常且无Code 43。</label><label class="task"><input type="checkbox">RDP备用通道、本机直显、键鼠均可用。</label><label class="task"><input type="checkbox">系统盘scsi0与数据盘scsi1分离。</label><label class="task"><input type="checkbox">NAS可访问且权限正确。</label><label class="task"><input type="checkbox">连续3次手动冷启动和3次自动冷启动通过。</label>
+        <h3>运维约束</h3>
+        <label class="task"><input type="checkbox">用户知道VM重启可能触发reset bug。</label><label class="task"><input type="checkbox">只有VM101使用8060S。</label><label class="task"><input type="checkbox">PVE管理账户和管理网络不向普通用户开放。</label><label class="task"><input type="checkbox">重要数据保存NAS，不把快照当备份。</label><label class="task"><input type="checkbox">已保留原裸机恢复介质或恢复方案。</label>
+        <div class="callout good"><strong>完成定义：</strong>不是“Windows亮了”就结束；只有管理、直显、远程、数据、回滚和连续冷启动都通过，才能作为共享工作站交付。</div>
+      </section>
+
+      <section class="section" id="sources">
+        <h2>参考资料与适用边界</h2>
+        <ol><li><a href="https://www.proxmox.com/en/downloads/proxmox-virtual-environment/iso/proxmox-ve-9-2-iso-installer">Proxmox VE 9.2 ISO Installer</a></li><li><a href="https://pve.proxmox.com/wiki/PCI(e)_Passthrough">Proxmox PCI(e) Passthrough</a></li><li><a href="https://pve.proxmox.com/wiki/Host_Bootloader">Proxmox Host Bootloader</a></li><li><a href="https://strixhalo.wiki/Guides/VM_iGPU_Passthrough">Strix Halo VM iGPU Passthrough</a></li><li><a href="https://github.com/isc30/ryzen-gpu-passthrough-proxmox">Ryzen GPU passthrough 社区指南</a></li><li><a href="https://github.com/zhaoyaqiong/proxmox_amd_ai_max_395_radeon_8060s_gpu_passthrough">EVO-X2 / 8060S 社区参考</a></li></ol>
+        <p>社区资料用于硬件实测参考。PCI地址、IOMMU分组、VBIOS、USB控制器、音频功能必须以 WS-001 的实际检测结果为准。软件仓库、内核和厂商驱动可能更新，正式部署时应同时查看官方当前文档。</p>
+      </section>
+      <p class="footer">GMKtec EVO-X2 · Proxmox VE 9.2-1 · 新手逐步安装与GPU直通指南</p>
+    </main>
+  </div>
+  <script>
+    const key='ws001-pve92-guide-progress-v1';
+    const boxes=[...document.querySelectorAll('.task input[type="checkbox"]')];
+    function load(){let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}boxes.forEach((b,i)=>{b.checked=!!s[i];b.addEventListener('change',save)});update()}
+    function save(){const s={};boxes.forEach((b,i)=>s[i]=b.checked);localStorage.setItem(key,JSON.stringify(s));update()}
+    function update(){const n=boxes.filter(b=>b.checked).length,t=boxes.length;document.getElementById('progressText').textContent=`${n} / ${t} 完成`;document.getElementById('progressBar').style.width=(t?n/t*100:0)+'%'}
+    function clearProgress(){if(confirm('清除本浏览器中保存的全部勾选进度？')){localStorage.removeItem(key);boxes.forEach(b=>b.checked=false);update()}}
+    document.querySelectorAll('pre').forEach(pre=>{const b=document.createElement('button');b.className='copy';b.textContent='复制';b.onclick=()=>navigator.clipboard.writeText(pre.innerText.replace(/^复制\n?/,'' )).then(()=>{b.textContent='已复制';setTimeout(()=>b.textContent='复制',1200)});pre.appendChild(b)});
+    load();
+  </script>
+</body>
+</html>

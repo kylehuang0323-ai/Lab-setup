@@ -170,6 +170,7 @@
     📍 全站导航：
     <a href="index.html" style="color:#0078D4; font-weight:700; text-decoration:underline;">NAS 配置</a>
     <a href="deployment-plan.html" style="color:#0078D4; text-decoration:none;">部署方案</a>
+    <a href="proxmox-gpu-passthrough.html" style="color:#0078D4; text-decoration:none;">Proxmox + GPU 直通</a>
     <a href="driver-install.html" style="color:#0078D4; text-decoration:none;">Step 1: 驱动</a>
     <a href="system-config.html" style="color:#0078D4; text-decoration:none;">Step 2: 系统配置</a>
     <a href="software-install.html" style="color:#0078D4; text-decoration:none;">Step 3: 软件安装</a>
@@ -641,6 +642,11 @@ cat /etc/exports
 <!-- Next Steps -->
 <div class="section" style="border-left-color: #5C2D91;">
     <h2>🔮 NAS 配置完成后的下一步</h2>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">🧩</span>
+        <div><strong>虚拟化部署模块：</strong>如需将 EVO-X2 改为 Proxmox VE 9.2 宿主机，并让 Windows VM 接管 Radeon 8060S，请按独立的 <a href="proxmox-gpu-passthrough.html">Proxmox 安装与 GPU 直通指南</a>操作。该路线会清空目标系统盘，不应与下方裸金属 Windows 流程混用。</div>
+    </div>
 
     <table>
         <tr><th>序号</th><th>任务</th><th>依赖</th></tr>
