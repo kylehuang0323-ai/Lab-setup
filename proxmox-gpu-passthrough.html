@@ -38,7 +38,7 @@
         <h1>第一次接触也能照做的<br>Proxmox + 8060S 直通指南</h1>
         <p class="lead">目标：WS-001 启动 Proxmox，自动启动 Windows VM101，由 VM101 接管 Radeon 8060S，并从 EVO-X2 的 HDMI/DP 在本地显示 Windows 桌面。</p>
         <div class="callout good"><strong>你的安装介质已确认：</strong><code>proxmox-ve_9.2-1.iso</code> 的 SHA256 为 <code>4E88FE416DF9B527624A175F24C9AA07C714D3332AFB1EE3DBF3879573EF2C6C</code>，与官方值完全一致。如果现有启动U盘就是由这份 ISO 制作，可直接使用。</div>
-        <p class="muted">文档版本：1.0 · 生成日期：2026-08-21 · 来源基线：同目录 Markdown 正式指南（2026-08-20）。本文不会自动执行任何安装或磁盘操作。</p>
+        <p class="muted">文档版本：1.1 · 更新日期：2026-08-24 · 来源基线：同目录 Markdown 正式指南（2026-08-20）。本文不会自动执行任何安装或磁盘操作。</p>
       </header>
 
       <section class="section" id="architecture">
@@ -153,20 +153,81 @@ Radeon 8060S → HDMI/DP → 显示器</code></pre></div>
         <pre><code>ssh root@<span class="placeholder">实际WS-001-IP</span></code></pre>
         <p class="cmdNote">黄色文字为占位符，必须换成实际值，不要连尖括号一起输入。</p>
         <h3>4.3 配置官方软件仓库并更新</h3>
-        <p>有有效订阅时保留 Enterprise repository。无订阅时，在 Web UI 选择：</p>
+        <div class="callout warn"><strong>先判断订阅类型：</strong>有有效 Proxmox 企业订阅时保留 Enterprise repository，不要执行下面的无订阅换源命令。没有企业订阅时，使用 Proxmox 官方 No-Subscription 仓库。</div>
+        <p><strong>方法一（推荐新手）：</strong>在 Web UI 中配置：</p>
         <pre><code>Datacenter → ws-001 → Updates → Repositories
 → 禁用无授权的 enterprise 项
 → Add → No-Subscription（PVE）</code></pre>
-        <div class="callout warn">只使用 Proxmox 官方仓库。不要执行来源不明的“一键换源/优化脚本”。仓库界面如与描述不一致，先参考当前官方文档。</div>
-        <p>通过 Web UI 的 Shell 或 SSH 执行：</p>
-        <pre><code>apt update
-apt full-upgrade -y
+        <p><strong>方法二（完整 Shell 命令）：</strong>仅在没有企业订阅、且尚未通过 Web UI 添加 No-Subscription 仓库时执行。整段复制到 PVE Shell；脚本会先备份源文件，再禁用 PVE/Ceph 企业源并添加 PVE 9 的官方免费源。</p>
+        <pre><code>set -e
+
+# 1. 备份当前 APT 软件源
+BACKUP_DIR="/root/apt-sources-backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+[ ! -f /etc/apt/sources.list ] || cp -a /etc/apt/sources.list "$BACKUP_DIR/"
+cp -a /etc/apt/sources.list.d "$BACKUP_DIR/"
+echo "APT sources backup: $BACKUP_DIR"
+
+# 2. 禁用无订阅环境无法访问的 Enterprise 源
+if [ -f /etc/apt/sources.list.d/pve-enterprise.sources ]; then
+  mv /etc/apt/sources.list.d/pve-enterprise.sources \
+     /etc/apt/sources.list.d/pve-enterprise.sources.disabled
+fi
+
+if [ -f /etc/apt/sources.list.d/pve-enterprise.list ]; then
+  mv /etc/apt/sources.list.d/pve-enterprise.list \
+     /etc/apt/sources.list.d/pve-enterprise.list.disabled
+fi
+
+# 当前部署不使用 Ceph；禁用安装器预置的 Ceph Enterprise 源
+if [ -f /etc/apt/sources.list.d/ceph.sources ]; then
+  mv /etc/apt/sources.list.d/ceph.sources \
+     /etc/apt/sources.list.d/ceph.sources.disabled
+fi
+
+if [ -f /etc/apt/sources.list.d/ceph.list ]; then
+  mv /etc/apt/sources.list.d/ceph.list \
+     /etc/apt/sources.list.d/ceph.list.disabled
+fi
+
+# 3. 添加 Proxmox VE 9 / Debian 13 (trixie) 官方 No-Subscription 源
+cat &gt; /etc/apt/sources.list.d/pve-no-subscription.list &lt;&lt;'EOF'
+deb http://download.proxmox.com/debian/pve trixie pve-no-subscription
+EOF
+
+# 4. 显示最终启用的仓库，确认不再包含 enterprise.proxmox.com
+grep -RhsE '^(deb |URIs:|Suites:|Components:)' \
+  /etc/apt/sources.list /etc/apt/sources.list.d/ 2&gt;/dev/null || true
+
+# 5. 刷新索引并完整升级
+apt clean
+apt update
+apt full-upgrade -y</code></pre>
+        <div class="callout good"><strong>成功标准：</strong><code>apt update</code> 结束时没有 <code>401 Unauthorized</code>、签名错误或 DNS 错误，且 <code>apt full-upgrade</code> 正常完成。升级期间不要关闭电源。</div>
+        <p>升级完成后先查看版本，再重启：</p>
+        <pre><code>pveversion -v
+uname -r
 reboot</code></pre>
-        <p>重启后重新 SSH，记录版本：</p>
+        <p>重启后重新登录 Web UI 或 SSH，确认管理网络和新内核：</p>
         <pre><code>hostname
 ip -br addr
+ip route
 pveversion -v
 uname -r</code></pre>
+        <details>
+          <summary><strong>如果更新仍然报错，展开运行诊断命令</strong></summary>
+          <h4>仍出现 401 Unauthorized</h4>
+          <pre><code>grep -Rni "enterprise.proxmox.com" \
+  /etc/apt/sources.list /etc/apt/sources.list.d/ 2&gt;/dev/null || true</code></pre>
+          <h4>出现 Temporary failure resolving / Could not resolve</h4>
+          <pre><code>ip route
+ping -c 4 <span class="placeholder">实际网关IP</span>
+getent hosts download.proxmox.com
+cat /etc/resolv.conf</code></pre>
+          <h4>出现证书尚未生效或已过期</h4>
+          <pre><code>timedatectl status</code></pre>
+          <p class="cmdNote">不要通过关闭签名验证、使用不可信镜像或执行来源不明的一键脚本绕过错误。</p>
+        </details>
         <h3>4.4 保存基础配置</h3>
         <pre><code>mkdir -p /root/ws001-backup/baseline
 cp -a /etc/network/interfaces /root/ws001-backup/baseline/
