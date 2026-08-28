@@ -498,6 +498,58 @@ Test-NetConnection localhost -Port 3389
 Test-NetConnection <span class="placeholder">WINDOWS_VM_IP</span> -Port 3389</code></pre>
           </div>
         </details>
+        <details open>
+          <summary>TermService 显示 Running，但 3389 没有监听</summary>
+          <div>
+            <p>如果 <code>Get-Service TermService</code> 显示 <code>Running</code>，但 <code>Get-NetTCPConnection</code> 报“找不到匹配对象”，且本机 3389 测试失败，表示服务进程存在，但 RDP 监听器尚未启用。这不是 <code>Get-NetTCPConnection</code> 命令本身出错。</p>
+            <p>先确认 Windows 版本。<code>WindowsEditionId</code> 为 <code>Professional</code> 或 <code>Enterprise</code> 时支持作为 RDP 主机；某些 Windows 11 系统仍可能在 <code>WindowsProductName</code> 中显示 Windows 10，不应仅凭这个名称判断版本。</p>
+            <pre><code>Get-ComputerInfo |
+  Select-Object WindowsProductName,WindowsEditionId
+
+Get-Service -Name TermService
+Get-ItemProperty `
+  -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' `
+  -Name fDenyTSConnections</code></pre>
+            <p>在 Windows VM 的<strong>管理员 PowerShell</strong>中启用 RDP、开放语言无关的内置防火墙规则并重启服务：</p>
+            <pre><code>Set-ItemProperty `
+  -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' `
+  -Name fDenyTSConnections `
+  -Value 0
+
+Enable-NetFirewallRule -Name 'RemoteDesktop-UserMode-In-TCP'
+Enable-NetFirewallRule -Name 'RemoteDesktop-UserMode-In-UDP'
+
+Set-Service -Name TermService -StartupType Automatic
+Restart-Service -Name TermService -Force</code></pre>
+            <p>立即执行四项验证：</p>
+            <pre><code>Get-ItemProperty `
+  -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' `
+  -Name fDenyTSConnections
+
+qwinsta
+Get-NetTCPConnection -LocalPort 3389 -State Listen
+Test-NetConnection localhost -Port 3389</code></pre>
+            <p>成功时应看到 <code>fDenyTSConnections : 0</code>、<code>qwinsta</code> 中存在 <code>rdp-tcp</code>，并且 <code>TcpTestSucceeded : True</code>。</p>
+            <div class="note warn"><strong>仍未监听：</strong>通过 noVNC 在管理员 PowerShell 执行 <code>shutdown /r /t 0</code> 完整重启 Windows VM。不要在远程桌面连接中途重启 TermService。</div>
+            <p>VM 重启后先在 VM 本机复测，再从 MIX 测试：</p>
+            <pre><code># Windows VM
+Get-NetTCPConnection -LocalPort 3389 -State Listen
+Test-NetConnection localhost -Port 3389
+
+# MIX 管理机
+Test-NetConnection <span class="placeholder">WINDOWS_VM_IP</span> -Port 3389</code></pre>
+            <table>
+              <tr><th>验证结果</th><th>下一步</th></tr>
+              <tr><td>VM 本机为 True，MIX 也为 True</td><td>运行 <code>mstsc</code> 登录 VM</td></tr>
+              <tr><td>VM 本机为 True，MIX 为 False</td><td>检查 PVE 的 VM 网卡防火墙、VLAN、MIX 路由和网络客户端隔离</td></tr>
+              <tr><td>VM 本机仍为 False</td><td>检查组策略、Windows 组件状态或组织安全策略；不要继续 GPU 直通</td></tr>
+            </table>
+            <div class="path">
+              <span>VM</span><span>硬件</span><span>网络设备 net0</span><span>编辑</span><span>排障时暂时取消“防火墙”</span>
+            </div>
+            <p>不要删除虚拟网卡，也不要重新生成 MAC 地址。排障完成后，按组织安全策略恢复 PVE 防火墙设置。</p>
+          </div>
+        </details>
         <details>
           <summary>设备管理器出现 PCI Simple Communications Controller 感叹号</summary>
           <div>
