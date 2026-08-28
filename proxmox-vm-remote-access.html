@@ -510,7 +510,7 @@ Get-Service -Name TermService
 Get-ItemProperty `
   -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' `
   -Name fDenyTSConnections</code></pre>
-            <p>在 Windows VM 的<strong>管理员 PowerShell</strong>中启用 RDP、开放语言无关的内置防火墙规则并重启服务：</p>
+            <p>在 Windows VM 的<strong>管理员 PowerShell</strong>中启用 RDP、开放语言无关的内置防火墙规则，并将服务设为自动启动：</p>
             <pre><code>Set-ItemProperty `
   -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' `
   -Name fDenyTSConnections `
@@ -519,9 +519,10 @@ Get-ItemProperty `
 Enable-NetFirewallRule -Name 'RemoteDesktop-UserMode-In-TCP'
 Enable-NetFirewallRule -Name 'RemoteDesktop-UserMode-In-UDP'
 
-Set-Service -Name TermService -StartupType Automatic
-Restart-Service -Name TermService -Force</code></pre>
-            <p>立即执行四项验证：</p>
+Set-Service -Name TermService -StartupType Automatic</code></pre>
+            <div class="note warn"><strong>实测问题：StopServiceFailed。</strong>如果 <code>Restart-Service -Name TermService -Force</code> 报告“服务 Remote Desktop Services (TermService) 停止失败”，不要反复强制停止服务。前面的注册表、防火墙和启动类型设置已经保存，直接通过 noVNC 完整重启 Windows VM 使监听器重新初始化：</div>
+            <pre><code>shutdown /r /t 0</code></pre>
+            <p>VM 重启并登录后执行四项验证：</p>
             <pre><code>Get-ItemProperty `
   -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' `
   -Name fDenyTSConnections
@@ -530,14 +531,24 @@ qwinsta
 Get-NetTCPConnection -LocalPort 3389 -State Listen
 Test-NetConnection localhost -Port 3389</code></pre>
             <p>成功时应看到 <code>fDenyTSConnections : 0</code>、<code>qwinsta</code> 中存在 <code>rdp-tcp</code>，并且 <code>TcpTestSucceeded : True</code>。</p>
-            <div class="note warn"><strong>仍未监听：</strong>通过 noVNC 在管理员 PowerShell 执行 <code>shutdown /r /t 0</code> 完整重启 Windows VM。不要在远程桌面连接中途重启 TermService。</div>
-            <p>VM 重启后先在 VM 本机复测，再从 MIX 测试：</p>
+            <p>VM 本机验证成功后，再从 MIX 测试：</p>
             <pre><code># Windows VM
 Get-NetTCPConnection -LocalPort 3389 -State Listen
 Test-NetConnection localhost -Port 3389
 
 # MIX 管理机
 Test-NetConnection <span class="placeholder">WINDOWS_VM_IP</span> -Port 3389</code></pre>
+            <p>如果完整重启后 VM 本机仍未监听，不要继续修改 GPU 直通。保存以下只读诊断结果，交由管理员检查 Windows 组件、组策略或组织安全策略：</p>
+            <pre><code>sc.exe query TermService
+sc.exe qc TermService
+qwinsta
+
+Get-WindowsOptionalFeature -Online |
+  Where-Object FeatureName -Match 'Remote'
+
+Get-WinEvent -LogName System -MaxEvents 200 |
+  Where-Object ProviderName -Match 'TerminalServices|Service Control Manager' |
+  Select-Object -First 30 TimeCreated,ProviderName,Id,LevelDisplayName,Message</code></pre>
             <table>
               <tr><th>验证结果</th><th>下一步</th></tr>
               <tr><td>VM 本机为 True，MIX 也为 True</td><td>运行 <code>mstsc</code> 登录 VM</td></tr>
