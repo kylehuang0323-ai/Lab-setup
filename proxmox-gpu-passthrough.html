@@ -275,10 +275,25 @@ cp -a /etc/modules /root/ws001-backup/baseline/</code></pre>
           <li><strong>建立远程通道：</strong>Windows Pro/Enterprise 启用“设置 → 系统 → 远程桌面”；记录 VM IP，并从管理员电脑测试 RDP。</li>
           <li><strong>记录网络：</strong>为 VM 使用网络管理员批准的固定 IP 或 DHCP Reservation，不要与 PVE 管理 IP 重复。</li>
         </ol>
-        <p>在 Proxmox Shell 备份 VM 配置：</p>
-        <pre><code>mkdir -p /root/ws001-backup/vm101-pre-gpu
-qm config 101 | tee /root/ws001-backup/vm101-pre-gpu/101.conf.txt
-cp -a /etc/pve/qemu-server/101.conf /root/ws001-backup/vm101-pre-gpu/101.conf</code></pre>
+        <p>在 Proxmox Shell 备份 VM 配置。使用节点完整路径，避免部分环境中 <code>/etc/pve/qemu-server</code> 快捷路径不存在：</p>
+        <pre><code>VM_ID=101
+NODE="$(hostname)"
+BACKUP_DIR="/root/ws001-backup/vm${VM_ID}-pre-gpu"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+
+if [ ! -f "$CONFIG_PATH" ]; then
+  echo "VM config not found: $CONFIG_PATH"
+  find /etc/pve/nodes -path "*/qemu-server/${VM_ID}.conf" -print
+  exit 1
+fi
+
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+ls -lh "$BACKUP_DIR"</code></pre>
+        <div class="callout warn"><strong>输入注意：</strong><code>cp -a</code> 中必须使用英文半角短横线，并在 <code>cp</code>、<code>-a</code>、源路径和目标路径之间保留空格。不要输入 <code>cp –a</code> 或 <code>cp -a/etc/...</code>。</div>
+        <p>成功时目录中会同时出现 <code>101.conf</code> 和 <code>101.conf.txt</code>；前者是原始 PVE 配置文件，后者是 <code>qm config</code> 的可读输出。</p>
         <div class="checkgate"><h4>验收门 6</h4>
           <label class="task"><input type="checkbox">noVNC 能看到 Windows。</label><label class="task"><input type="checkbox">Windows 网络正常。</label><label class="task"><input type="checkbox">管理员电脑可以 RDP 到 VM101。</label><label class="task"><input type="checkbox">设备管理器没有未知的 VirtIO 核心设备。</label><label class="task"><input type="checkbox">VM101 可以正常关机和重新启动（尚未直通GPU时）。</label><label class="task"><input type="checkbox">VM101 配置已备份。</label>
         </div>
@@ -485,8 +500,16 @@ qm set 101 --hostpci1 0000:c5:00.1,pcie=1,rombar=0</code></pre>
       <section class="section" id="display">
         <h2>12. 将 8060S 切换为 VM101 的本地主显示器</h2>
         <h3>12.1 备份已工作的VM配置</h3>
-        <pre><code>mkdir -p /root/ws001-backup/vm101-gpu-working
-cp -a /etc/pve/qemu-server/101.conf /root/ws001-backup/vm101-gpu-working/101.conf</code></pre>
+        <pre><code>VM_ID=101
+NODE="$(hostname)"
+BACKUP_DIR="/root/ws001-backup/vm${VM_ID}-gpu-working"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+test -f "$CONFIG_PATH" || { echo "VM config not found: $CONFIG_PATH"; exit 1; }
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+ls -lh "$BACKUP_DIR"</code></pre>
         <h3>12.2 设置 x-vga 并关闭虚拟显示器</h3>
         <pre><code>qm set 101 --hostpci0 <span class="placeholder">实际GPU_PCI</span>,pcie=1,romfile=ws001-vbios-8060s.bin,x-vga=1
 qm set 101 --vga none

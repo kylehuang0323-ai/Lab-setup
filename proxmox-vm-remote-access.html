@@ -479,10 +479,29 @@ Test-NetConnection <span class="placeholder">WINDOWS_VM_IP</span> -Port 3389</co
         <ol>
           <li>通过 RDP 实际登录成功。</li>
           <li>将 VM 备份到 NAS，备注为 <code>pre-GPU-passthrough</code>。</li>
-          <li>备份 <code>/etc/pve/qemu-server/&lt;VM_ID&gt;.conf</code>。</li>
+          <li>通过节点完整路径备份 <code>/etc/pve/nodes/&lt;NODE&gt;/qemu-server/&lt;VM_ID&gt;.conf</code>。</li>
           <li>设置 <code>x-vga=1</code> 和 <code>vga: none</code> 后，预期 noVNC 不再显示桌面。</li>
         </ol>
         <div class="note good"><strong>最终访问组合：</strong>PVE Web/SSH 管理宿主机；物理 HDMI/DP 和 RDP 访问 Windows VM；noVNC 仅在保留虚拟显示器时可用。</div>
+        <h3>直通前 VM 配置备份（已在 pve-gmk003 / VM103 实测）</h3>
+        <pre><code>VM_ID=103
+NODE="$(hostname)"
+BACKUP_DIR="/root/gmk003-backup/vm${VM_ID}-pre-gpu"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+
+if [ ! -f "$CONFIG_PATH" ]; then
+  echo "VM config not found: $CONFIG_PATH"
+  find /etc/pve/nodes -path "*/qemu-server/${VM_ID}.conf" -print
+  exit 1
+fi
+
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+ls -lh "$BACKUP_DIR"</code></pre>
+        <p>成功时应同时看到 <code>103.conf</code> 和 <code>103.conf.txt</code>。后续设备只需修改 <code>VM_ID</code> 和备份目录名称，节点名由 <code>hostname</code> 自动取得。</p>
+        <div class="note warn"><strong>常见输入错误：</strong>必须输入英文 <code>-a</code>，且命令格式为 <code>cp -a 源路径 目标路径</code>。中文长横线 <code>–</code>、缺少空格的 <code>cp -a/etc/...</code> 都会触发 <code>invalid option</code>。</div>
       </section>
 
       <section id="troubleshoot">
