@@ -39,7 +39,7 @@
         <h1>第一次接触也能照做的<br>Proxmox + 8060S 直通指南</h1>
         <p class="lead">目标：WS-001 启动 Proxmox，自动启动 Windows VM101，由 VM101 接管 Radeon 8060S，并从 EVO-X2 的 HDMI/DP 在本地显示 Windows 桌面。</p>
         <div class="callout good"><strong>你的安装介质已确认：</strong><code>proxmox-ve_9.2-1.iso</code> 的 SHA256 为 <code>4E88FE416DF9B527624A175F24C9AA07C714D3332AFB1EE3DBF3879573EF2C6C</code>，与官方值完全一致。如果现有启动U盘就是由这份 ISO 制作，可直接使用。</div>
-        <p class="muted">文档版本：1.1 · 更新日期：2026-08-24 · 来源基线：同目录 Markdown 正式指南（2026-08-20）。本文不会自动执行任何安装或磁盘操作。</p>
+        <p class="muted">文档版本：1.2 · 更新日期：2026-09-07 · 来源基线：同目录 Markdown 正式指南（2026-08-20）及 pve-gmk003 / VM103 实测流程。本文不会自动执行任何安装或磁盘操作。</p>
       </header>
 
       <section class="section" id="architecture">
@@ -456,16 +456,16 @@ softdep radeon pre: vfio-pci
 softdep snd_hda_intel pre: vfio-pci
 EOF
 
-cat &gt;/etc/modprobe.d/pve-blacklist.conf &lt;&lt;'EOF'
+cat &gt;/etc/modprobe.d/gpu-blacklist.conf &lt;&lt;'EOF'
 blacklist amdgpu
 blacklist radeon
-blacklist snd_hda_intel
 EOF
 
 update-initramfs -u -k all
 cat /etc/modprobe.d/vfio.conf
-cat /etc/modprobe.d/pve-blacklist.conf
+cat /etc/modprobe.d/gpu-blacklist.conf
 cat /etc/modules</code></pre>
+        <div class="callout"><strong>音频处理：</strong><code>1002:1640</code> 已通过 <code>vfio-pci ids</code> 指定，通常不需要全局屏蔽 <code>snd_hda_intel</code>。这样可避免同时影响宿主机上的其他 HDA 音频设备。</div>
         <h3>10.4 重启前强制检查</h3>
         <label class="task"><input type="checkbox">管理 IP 固定，Web UI 与 SSH 都正常。</label><label class="task"><input type="checkbox">管理网卡没有出现在任何直通配置中。</label><label class="task"><input type="checkbox">VM101 已关闭。</label><label class="task"><input type="checkbox"><code>/root/ws001-backup</code> 存在。</label><label class="task"><input type="checkbox">知道如何使用 BIOS/启动菜单进入旧内核或恢复模式。</label>
         <p>全部确认后才执行：</p><pre><code>reboot</code></pre>
@@ -493,6 +493,47 @@ qm set 101 --hostpci1 0000:c5:00.1,pcie=1,rombar=0</code></pre>
         <h3>11.1 首次启动并安装AMD驱动</h3>
         <pre><code>qm start 101</code></pre>
         <ol class="steps"><li>通过 noVNC 或 RDP 登录 Windows。</li><li>安装 Ryzen AI Max+ 395 官方 AMD 驱动。</li><li>打开设备管理器，确认 Radeon 8060S 存在且没有 Code 43。</li><li>记录 AMD 驱动版本。</li><li>在 Windows 内选择“关机”，不要点“重新启动”。</li><li>必要时从 PVE 确认：<code>qm status 101</code>。</li></ol>
+        <h3>11.2 pve-gmk003 / VM103 已验证流程</h3>
+        <div class="callout good"><strong>实测状态：</strong>GPU <code>0000:c5:00.0</code> 和 GPU Audio <code>0000:c5:00.1</code> 均已绑定 <code>vfio-pci</code>；本机 VBIOS 文件为 <code>gmk003-vbios-8060s.bin</code>。其他节点必须重新检测 PCI 地址和使用自己的 VBIOS，不能直接照抄。</div>
+        <p>添加 PCI 设备前，先保存 VM 配置并验证 VBIOS：</p>
+        <pre><code>VM_ID=103
+NODE="$(hostname)"
+BACKUP_DIR="/root/gmk003-backup/vm103-pre-hostpci"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+
+qm status "$VM_ID"
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+ls -lh "$BACKUP_DIR"
+
+sha256sum -c /root/gmk003-vbios-8060s.sha256
+ls -lh /usr/share/kvm/gmk003-vbios-8060s.bin</code></pre>
+        <p>确认 VM 为 <code>stopped</code>、两份配置文件存在且 VBIOS 显示 <code>OK</code> 后，添加 GPU 与音频：</p>
+        <pre><code>qm set 103 \
+  --hostpci0 0000:c5:00.0,pcie=1,romfile=gmk003-vbios-8060s.bin
+
+qm set 103 \
+  --hostpci1 0000:c5:00.1,pcie=1,rombar=0
+
+qm config 103 | grep -E '^(bios|machine|cpu|vga|hostpci)'</code></pre>
+        <p>本轮必须保留虚拟显示器；配置中不应出现 <code>x-vga=1</code> 或 <code>vga: none</code>。启动并检查状态：</p>
+        <pre><code>qm start 103
+qm status 103</code></pre>
+        <div class="callout"><code>swtpm_setup: Not overwriting existing state file.</code> 表示 VM 已有 TPM 状态文件，不是启动失败。以最终出现 <code>status: running</code> 为准。</div>
+        <p>进入 Windows 后，在管理员 PowerShell 检查显示设备：</p>
+        <pre><code>Get-PnpDevice -Class Display |
+  Format-Table Status,FriendlyName,InstanceId -AutoSize</code></pre>
+        <ol class="steps">
+          <li>通过 noVNC 或 RDP 登录 Windows；如果 noVNC 暂时不可用，先从 MIX 测试 RDP。</li>
+          <li>在“设备管理器 → 显示适配器”中确认出现 Radeon 8060S 或尚未安装驱动的 Microsoft Basic Display Adapter。</li>
+          <li>安装 Ryzen AI Max+ 395 / Radeon 8060S 的 AMD 官方驱动。</li>
+          <li>确认 Radeon 8060S 状态为“这个设备运转正常”，没有 Code 43。</li>
+          <li>从 MIX 执行 <code>Test-NetConnection WINDOWS_VM_IP -Port 3389</code>，确认 RDP 仍为 True。</li>
+          <li>在 Windows 中执行 <code>shutdown /s /t 0</code>，不要使用“重新启动”。</li>
+          <li>在 PVE Shell 执行 <code>qm status 103</code>，确认返回 <code>status: stopped</code>。</li>
+        </ol>
+        <div class="callout warn"><strong>停止条件：</strong>如果 VM 启动报 VFIO/ROM/BAR 错误、RDP 失效或设备管理器出现 Code 43，不要进入物理直显步骤，也不要设置 <code>x-vga=1</code> 或 <code>vga: none</code>。</div>
         <div class="callout warn"><strong>驱动安装崩溃时：</strong>冷重启 WS-001；临时将 VM CPU Type 改为 <code>x86-64-v4</code> 完成驱动安装；关机后改回 <code>host</code>；再冷重启验证。不要先套用来源不明的 AMDGopDriver.rom。</div>
         <div class="checkgate"><h4>验收门 11</h4><label class="task"><input type="checkbox">VM101 能启动且 RDP 可连接。</label><label class="task"><input type="checkbox">设备管理器识别 Radeon 8060S。</label><label class="task"><input type="checkbox">没有 Code 43。</label><label class="task"><input type="checkbox">Windows 已完整关机。</label></div>
       </section>
@@ -605,7 +646,14 @@ qm set 101 --vga std
 qm set 101 --onboot 0
 
 mv /etc/modprobe.d/vfio.conf /etc/modprobe.d/vfio.conf.disabled
-mv /etc/modprobe.d/pve-blacklist.conf /etc/modprobe.d/pve-blacklist.conf.disabled</code></pre>
+
+for FILE in \
+  /etc/modprobe.d/gpu-blacklist.conf \
+  /etc/modprobe.d/gmk003-gpu-blacklist.conf \
+  /etc/modprobe.d/pve-blacklist.conf
+do
+  [ ! -f "$FILE" ] || mv "$FILE" "$FILE.disabled"
+done</code></pre>
         <p>只执行与你实际 Bootloader 对应的一组：</p>
         <h4>GRUB</h4><pre><code>cp -a /etc/default/grub.pre-vfio /etc/default/grub
 update-grub</code></pre>
@@ -614,7 +662,7 @@ proxmox-boot-tool refresh</code></pre>
         <p>最后执行：</p><pre><code>update-initramfs -u -k all
 reboot</code></pre>
         <h3>17.2 网络也无法访问时</h3>
-        <ol class="steps"><li>在 BIOS/UEFI 启动菜单选择 Proxmox。</li><li>在 GRUB/systemd-boot 菜单临时编辑内核命令行，删除 <code>initcall_blacklist=sysfb_init</code> 和本次增加的 VFIO/IOMMU 参数。</li><li>启动恢复环境，将 <code>vfio.conf</code> 和 <code>pve-blacklist.conf</code> 改名。</li><li>恢复预先备份的 Bootloader 配置。</li><li>更新 initramfs/Bootloader 后重启。</li><li>恢复网络后先执行 <code>qm set 101 --onboot 0</code>。</li></ol>
+        <ol class="steps"><li>在 BIOS/UEFI 启动菜单选择 Proxmox。</li><li>在 GRUB/systemd-boot 菜单临时编辑内核命令行，删除 <code>initcall_blacklist=sysfb_init</code> 和本次增加的 VFIO/IOMMU 参数。</li><li>启动恢复环境，将 <code>vfio.conf</code> 和实际使用的 GPU blacklist 配置改名。</li><li>恢复预先备份的 Bootloader 配置。</li><li>更新 initramfs/Bootloader 后重启。</li><li>恢复网络后先执行 <code>qm set 101 --onboot 0</code>。</li></ol>
       </section>
 
       <section class="section" id="diagnostics">
@@ -638,7 +686,7 @@ OUT="/root/ws001-passthrough-diagnostics-$(date +%F-%H%M%S).txt"
   echo '===== VFIO MODULES ====='; lsmod | grep vfio
   echo '===== CONFIG FILES ====='; cat /etc/modules
   cat /etc/modprobe.d/vfio.conf 2&gt;&amp;1
-  cat /etc/modprobe.d/pve-blacklist.conf 2&gt;&amp;1
+  grep -RhsE '^(blacklist|options vfio|softdep)' /etc/modprobe.d/ 2&gt;&amp;1
   echo '===== ROM ====='; ls -lh /usr/share/kvm/*vbios* 2&gt;&amp;1
   sha256sum /usr/share/kvm/*vbios* 2&gt;&amp;1
   echo '===== CURRENT BOOT LOG ====='
