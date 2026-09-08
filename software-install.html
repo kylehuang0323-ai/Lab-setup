@@ -267,9 +267,55 @@ ollama --version
 ollama list
 arduino-ide --version</div>
 
-    <h3>D1. Ollama 模型拉取命令（管理员 PowerShell）</h3>
-    <div class="cmd"><span class="comment"># 先确认命令可用</span>
+    <h3>D1. 将 Ollama 模型目录固定到 D 盘（管理员 PowerShell）</h3>
+    <p>在第一次执行 <code>ollama pull</code> 前完成本节。Ollama 程序安装在 C 盘，体积较大的模型统一保存到 <code>D:\AI-Models\Ollama</code>。</p>
+    <div class="cmd"><span class="comment"># 创建模型、Python 环境和缓存目录</span>
+New-Item -ItemType Directory -Force `
+  D:\AI-Models\Ollama,
+  D:\AI-Models\HuggingFace,
+  D:\AI-Envs,
+  D:\AI-Cache
+
+<span class="comment"># 设置当前 Windows 用户的 Ollama 模型目录</span>
+[Environment]::SetEnvironmentVariable(
+  "OLLAMA_MODELS",
+  "D:\AI-Models\Ollama",
+  "User"
+)
+
+<span class="comment"># 同时将常用 AI/Python 缓存放到 D 盘</span>
+[Environment]::SetEnvironmentVariable(
+  "HF_HOME",
+  "D:\AI-Models\HuggingFace",
+  "User"
+)
+
+[Environment]::SetEnvironmentVariable(
+  "PIP_CACHE_DIR",
+  "D:\AI-Cache\pip",
+  "User"
+)</div>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>必须重新载入环境：</strong>设置完成后，从任务栏右下角完全退出 Ollama，关闭当前 PowerShell，再重新打开 PowerShell并启动 Ollama。只关闭终端但不退出 Ollama 后台进程，模型路径可能不会更新。</div>
+    </div>
+
+    <div class="cmd"><span class="comment"># 在新的 PowerShell 中检查用户环境变量</span>
+[Environment]::GetEnvironmentVariable(
+  "OLLAMA_MODELS",
+  "User"
+)
+
+$env:OLLAMA_MODELS
+
+<span class="comment"># 两项都应显示：</span>
+<span class="comment"># D:\AI-Models\Ollama</span></div>
+
+    <h3>D2. Ollama 模型拉取命令（管理员 PowerShell）</h3>
+    <div class="cmd"><span class="comment"># 先确认命令和模型目录可用</span>
 ollama --version
+[Environment]::GetEnvironmentVariable("OLLAMA_MODELS", "User")
 
 <span class="comment"># Lab 基线模型清单</span>
 ollama pull qwen2.5:7b
@@ -278,7 +324,39 @@ ollama pull deepseek-r1:14b
 ollama pull deepseek-r1:32b
 ollama pull minicpm-v:8b
 ollama pull qwen3-coder:30b
-ollama pull qwen3:30b-a3b-instruct-2507-q4_K_M</div>
+ollama pull qwen3:30b-a3b-instruct-2507-q4_K_M
+
+<span class="comment"># 验证模型和实际磁盘目录</span>
+ollama list
+Get-ChildItem "D:\AI-Models\Ollama" -Force</div>
+
+    <h3>D3. 已经在 C 盘下载过模型时迁移到 D 盘</h3>
+    <p>先从任务栏右下角完全退出 Ollama，再执行复制。只迁移 <code>models</code>，不要移动整个 <code>.ollama</code> 目录。</p>
+    <div class="cmd">$OldModels = Join-Path $env:USERPROFILE ".ollama\models"
+$NewModels = "D:\AI-Models\Ollama"
+
+New-Item -ItemType Directory -Path $NewModels -Force
+
+robocopy `
+  $OldModels `
+  $NewModels `
+  /E /COPY:DAT /DCOPY:DAT /R:2 /W:2
+
+<span class="comment"># 确认复制没有失败后，保留旧目录作为临时备份</span>
+Rename-Item `
+  -Path $OldModels `
+  -NewName "models.backup-20260908"</div>
+
+    <p>重新启动 Ollama 后验证：</p>
+    <div class="cmd">ollama list
+Get-ChildItem "D:\AI-Models\Ollama" -Force
+
+<span class="comment"># 目录中应出现 blobs 和 manifests</span></div>
+
+    <div class="alert alert-warning">
+        <span class="alert-icon">📸</span>
+        <div><strong>PVE 快照注意：</strong>当前 VM 的 C、D 分区位于同一块虚拟磁盘中。快照回滚后，基线之后新拉取到 D 盘的模型也会消失。因此应先完成标准模型下载和验证，再创建每台 VM 自己的 <code>clean-baseline-v1</code>；用户需要永久保存的文件仍放 NAS。</div>
+    </div>
 
 
     <h3>E. 数据岗安装命令（Data Role）</h3>
@@ -309,7 +387,7 @@ figma --help
 <span class="comment"># Canva/剪映 若为商店或官网版，请从开始菜单启动验证</span></div>
     <div class="alert alert-success">
         <span class="alert-icon">✅</span>
-        <div><strong>DoD：</strong>以上命令全部返回版本号，且 <code>ollama list</code> 可执行。</div>
+        <div><strong>DoD：</strong>以上命令全部返回版本号，<code>ollama list</code> 可执行，且 <code>D:\AI-Models\Ollama</code> 中存在 <code>blobs</code> 和 <code>manifests</code>。</div>
     </div>
 </div>
 
