@@ -23,6 +23,7 @@
   <div class="topbar">
     <strong>GMK EVO-X2 · PVE 9.2-1 新手部署指南</strong>
     <span class="progressText" id="progressText">0 / 0 完成</span><div class="progress"><span id="progressBar"></span></div>
+    <a class="btn" href="proxmox-node-rollout.html">批量部署主流程</a>
     <a class="btn" href="index.html">返回文档首页</a>
     <a class="btn" href="proxmox-vm-remote-access.html">VM 远程访问</a>
     <button class="btn" onclick="window.print()">打印 / 另存 PDF</button>
@@ -432,14 +433,15 @@ findmnt /</code></pre>
         <pre><code>cp -a /etc/default/grub /etc/default/grub.pre-vfio
 nano /etc/default/grub</code></pre>
         <p>把参数追加到已有 <code>GRUB_CMDLINE_LINUX_DEFAULT</code>，不要删除原参数。例如：</p>
-        <pre><code>GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt initcall_blacklist=sysfb_init"
+        <pre><code>GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt initcall_blacklist=sysfb_init"
 update-grub</code></pre>
         <h4>如果使用 systemd-boot / proxmox-boot-tool</h4>
         <pre><code>cp -a /etc/kernel/cmdline /etc/kernel/cmdline.pre-vfio
 nano /etc/kernel/cmdline</code></pre>
         <p>保持一整行，在原 root 参数后追加：</p>
-        <pre><code>amd_iommu=on iommu=pt initcall_blacklist=sysfb_init
+        <pre><code>iommu=pt initcall_blacklist=sysfb_init
 proxmox-boot-tool refresh</code></pre>
+        <div class="callout warn">PVE-003 的 PVE 9 内核已验证：不要添加 <code>amd_iommu=on</code>，否则可能出现 <code>AMD-Vi: Unknown option -- 'on'</code>。SVM/IOMMU 由 BIOS 启用，内核只保留上面的参数。</div>
         <div class="callout warn">不要同时盲改 GRUB 和 <code>/etc/kernel/cmdline</code>。不确定 Bootloader 类型时停止。</div>
         <h3>10.2 加载 VFIO 模块</h3>
         <pre><code>for m in vfio vfio_iommu_type1 vfio_pci; do
@@ -595,10 +597,11 @@ qm set 101 --hostpci2 0000:<span class="placeholder">实际USB控制器地址</s
         <table><tr><th>轮次</th><th>PVE在线</th><th>VM Running</th><th>本机显示</th><th>键鼠</th><th>RDP</th><th>Web UI</th><th>Code 43</th></tr><tr><td>1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>
         <h3>14.2 启用自动启动</h3>
         <pre><code>qm set 101 --onboot 1
-qm set 101 --startup order=1,up=30,down=90
+qm set 101 --startup order=1,up=0,down=90
 pvenode config set --startall-onboot-delay 30
 qm config 101 | grep -E 'onboot|startup'
 pvenode config get</code></pre>
+        <p>节点级 <code>startall-onboot-delay: 30</code> 统一等待 30 秒，VM 的 <code>up</code> 使用 <code>0</code>，避免叠加成 60 秒。</p>
         <h3>14.3 再做三轮自动启动验证</h3>
         <label class="task"><input type="checkbox">只有 VM101 配置使用这块 8060S。</label><label class="task"><input type="checkbox">WS-001 上电后 VM101 自动进入 Running。</label><label class="task"><input type="checkbox">用户无需登录 PVE 即可在本机看到 Windows。</label><label class="task"><input type="checkbox">连续3轮冷启动均无 Code 43/黑屏。</label>
       </section>

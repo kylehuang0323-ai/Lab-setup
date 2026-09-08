@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>GMK EVO-X2 Proxmox 后续节点复制部署运行手册</title>
+  <style>
+    :root {
+      --bg: #edf2f7;
+      --surface: #ffffff;
+      --surface-2: #f6f8fb;
+      --ink: #172033;
+      --muted: #566278;
+      --line: #d3dce8;
+      --blue: #075fa8;
+      --blue-soft: #dceeff;
+      --green: #08704e;
+      --green-soft: #d9f5e8;
+      --amber: #7a4a00;
+      --amber-soft: #fff0c4;
+      --red: #a4262c;
+      --red-soft: #ffe5e7;
+      --purple: #5f45a8;
+      --code: #0c1422;
+      --code-text: #eef5ff;
+      --shadow: 0 12px 34px rgba(20, 39, 68, .09);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #08111f;
+        --surface: #111c2d;
+        --surface-2: #172438;
+        --ink: #edf4ff;
+        --muted: #b7c5d9;
+        --line: #31425d;
+        --blue: #79c1ff;
+        --blue-soft: #173754;
+        --green: #65deb2;
+        --green-soft: #123c31;
+        --amber: #ffd070;
+        --amber-soft: #49330a;
+        --red: #ff979c;
+        --red-soft: #4b1b20;
+        --purple: #b9a5ff;
+        --code: #050a13;
+        --code-text: #edf4ff;
+        --shadow: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 78px; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.72 "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+    a { color: var(--blue); }
+    code, kbd { font-family: Consolas, "Cascadia Code", monospace; }
+    kbd {
+      padding: .06rem .36rem;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      background: var(--surface);
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      backdrop-filter: blur(10px);
+    }
+    .topbar strong { margin-right: auto; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .button:hover { border-color: var(--blue); color: var(--blue); }
+    .layout {
+      display: grid;
+      grid-template-columns: 285px minmax(0, 940px);
+      gap: 24px;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .toc {
+      position: sticky;
+      top: 82px;
+      align-self: start;
+      max-height: calc(100vh - 102px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 17px; }
+    .toc a {
+      display: block;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 14px;
+      text-decoration: none;
+    }
+    .toc a:hover { background: var(--blue-soft); color: var(--blue); }
+    main { min-width: 0; }
+    .hero, section {
+      margin-bottom: 22px;
+      padding: clamp(21px, 4vw, 34px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--blue-soft) 80%, var(--surface)), var(--surface) 62%);
+    }
+    .hero h1 {
+      max-width: 21ch;
+      margin: 8px 0 14px;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+    .hero p { max-width: 76ch; color: var(--muted); font-size: 18px; }
+    .badge {
+      display: inline-block;
+      margin: 0 6px 6px 0;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .badge.good { background: var(--green-soft); color: var(--green); }
+    h2 {
+      margin: 0 0 14px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(23px, 3vw, 30px);
+      line-height: 1.25;
+      text-wrap: balance;
+    }
+    h3 { margin: 25px 0 9px; font-size: 20px; text-wrap: balance; }
+    h4 { margin: 18px 0 7px; font-size: 17px; }
+    p, li, th, td { overflow-wrap: anywhere; text-wrap: pretty; }
+    table {
+      display: block;
+      width: 100%;
+      margin: 14px 0;
+      overflow-x: auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--blue-soft); }
+    pre {
+      position: relative;
+      overflow: auto;
+      margin: 13px 0;
+      padding: 18px;
+      border: 1px solid #2b3b54;
+      border-radius: 10px;
+      background: var(--code);
+      color: var(--code-text);
+      line-height: 1.55;
+    }
+    pre code { font-size: 14px; }
+    .copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 5px 9px;
+      border: 1px solid #53647d;
+      border-radius: 6px;
+      background: #202d42;
+      color: #fff;
+      cursor: pointer;
+    }
+    .placeholder { color: #ffd071; font-weight: 700; }
+    .note {
+      margin: 16px 0;
+      padding: 15px 17px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--blue-soft);
+    }
+    .note.good { background: var(--green-soft); }
+    .note.warn { background: var(--amber-soft); }
+    .note.danger { background: var(--red-soft); }
+    .gate {
+      margin: 18px 0;
+      padding: 16px;
+      border: 2px solid var(--green);
+      border-radius: 11px;
+    }
+    .gate h3 { margin: 0 0 8px; color: var(--green); }
+    .check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 7px 0;
+      padding: 8px 10px;
+      border-radius: 7px;
+    }
+    .check:hover { background: var(--surface-2); }
+    .check input {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      margin-top: 5px;
+      accent-color: var(--green);
+    }
+    .check:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+    .path {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      font-weight: 650;
+    }
+    .path span:not(:last-child)::after { content: " →"; color: var(--muted); }
+    .phase {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      margin: 15px 0;
+    }
+    .phase-number {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: #fff;
+      font-weight: 800;
+    }
+    .phase-body {
+      padding: 13px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+    }
+    .phase-body strong { display: block; margin-bottom: 3px; }
+    details {
+      margin: 12px 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+    }
+    summary { padding: 13px 15px; font-weight: 700; cursor: pointer; }
+    details > div { padding: 0 15px 15px; }
+    .footer { padding: 10px 20px 50px; color: var(--muted); text-align: center; }
+    @media (max-width: 920px) {
+      html, body { max-width: 100%; overflow-x: hidden; }
+      .topbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .topbar strong { grid-column: 1 / -1; width: 100%; margin-right: 0; }
+      .topbar .button {
+        min-width: 0;
+        justify-content: center;
+        text-align: center;
+        white-space: normal;
+      }
+      .layout { grid-template-columns: 1fr; padding: 14px; }
+      .toc { position: relative; top: 0; max-height: 250px; }
+      main, .hero, section { min-width: 0; max-width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      body { background: #fff; color: #000; }
+      .topbar, .toc, .copy { display: none !important; }
+      .layout { display: block; max-width: none; padding: 0; }
+      .hero, section { box-shadow: none; break-inside: auto; }
+      pre { white-space: pre-wrap; word-break: break-word; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topbar" aria-label="文档导航">
+    <strong>PVE 后续节点复制部署运行手册</strong>
+    <a class="button" href="index.html">文档首页</a>
+    <a class="button" href="proxmox-gpu-passthrough.html">GPU 细节指南</a>
+    <a class="button" href="proxmox-vm-remote-access.html">远程访问排障</a>
+    <button class="button" type="button" onclick="window.print()">打印 / PDF</button>
+  </nav>
+
+  <div class="layout">
+    <aside class="toc">
+      <h2>必须按顺序执行</h2>
+      <a href="#overview">运行手册定位</a>
+      <a href="#matrix">0. 节点参数表</a>
+      <a href="#bios">1. BIOS 与安装介质</a>
+      <a href="#install">2. 安装 PVE</a>
+      <a href="#update">3. 仓库与更新</a>
+      <a href="#nas">4. 连接 NAS</a>
+      <a href="#restore">5. 恢复通用 VM</a>
+      <a href="#windows">6. Windows 唯一化</a>
+      <a href="#remote">7. Guest Agent 与 RDP</a>
+      <a href="#discovery">8. PCI 与 IOMMU</a>
+      <a href="#vbios">9. 提取本机 VBIOS</a>
+      <a href="#vfio">10. 配置 VFIO</a>
+      <a href="#first-gpu">11. 首次 GPU 启动</a>
+      <a href="#display">12. 本地直显</a>
+      <a href="#usb">13. USB 键鼠</a>
+      <a href="#validation">14. 冷启动验收</a>
+      <a href="#autostart">15. 自动启动</a>
+      <a href="#backup">16. 最终备份</a>
+      <a href="#rollback">17. 回滚</a>
+      <a href="#handoff">18. 交付记录</a>
+    </aside>
+
+    <main>
+      <header class="hero" id="overview">
+        <span class="badge good">基于 pve-gmk003 / VM103 实测</span>
+        <span class="badge">适用于第 2、3 台及后续 EVO-X2</span>
+        <span class="badge">Proxmox VE 9.2</span>
+        <h1>按同一顺序复制下一台 PVE 工作站</h1>
+        <p>本页是后续节点的唯一主入口。它把 PVE-003 已验证的安装、NAS、Windows VM、RDP、Radeon 8060S、USB、本地直显和自动启动流程参数化。遇到异常时再进入 GPU 细节指南或远程访问排障页。</p>
+        <div class="note danger"><strong>不可直接复制的内容：</strong>PVE 节点身份、管理 IP、VM ID、VM MAC、Windows 名称、Windows IP、PCI 地址、IOMMU Group 和 VBIOS。即使硬件型号相同，也必须逐台检测和记录。</div>
+        <div class="note good"><strong>可以复用的内容：</strong>NAS 中的“直通前 Windows VM 基线”可以恢复到其他节点。最终包含 GPU/USB 的节点备份只用于恢复原节点，不能直接作为通用模板。</div>
+      </header>
+
+      <section id="matrix">
+        <h2>0. 先填写节点参数表</h2>
+        <table>
+          <tr><th>项目</th><th>PVE-003 已验证值</th><th>第 2 台示例</th><th>第 3 台示例</th></tr>
+          <tr><td>节点名</td><td><code>pve-gmk003</code></td><td><code>pve-gmk004</code></td><td><code>pve-gmk005</code></td></tr>
+          <tr><td>PVE 管理 IP</td><td><code>192.168.0.103</code></td><td><code>192.168.0.104</code></td><td><code>192.168.0.105</code></td></tr>
+          <tr><td>VM ID</td><td><code>103</code></td><td><code>104</code></td><td><code>105</code></td></tr>
+          <tr><td>VM 名称</td><td><code>WIN11-GMK003</code></td><td><code>WIN11-GMK004</code></td><td><code>WIN11-GMK005</code></td></tr>
+          <tr><td>Windows VM IP</td><td><code>192.168.0.148</code></td><td>由 DHCP/管理员分配</td><td>由 DHCP/管理员分配</td></tr>
+          <tr><td>NAS</td><td colspan="3"><code>192.168.0.81</code> / <code>nas-pve-backup</code></td></tr>
+        </table>
+        <div class="note warn">上表中第 2、3 台 IP 只是命名示例。正式配置前必须确认没有地址冲突，并按网络管理员批准的地址执行。</div>
+        <p>在新节点创建参数文件。只修改黄色示例值，后续每次打开新的 PVE Shell 先执行 <code>. /root/pve-node-vars.sh</code>：</p>
+        <pre><code>cat &gt; /root/pve-node-vars.sh &lt;&lt;'EOF'
+NODE_NO="<span class="placeholder">004</span>"
+NODE_NAME="pve-gmk${NODE_NO}"
+VM_ID="<span class="placeholder">104</span>"
+VM_NAME="WIN11-GMK${NODE_NO}"
+NAS_IP="192.168.0.81"
+NAS_STORAGE="nas-pve-backup"
+GPU_ID="1002:1586"
+AUDIO_ID="1002:1640"
+ROM_NAME="${NODE_NAME}-vbios-8060s.bin"
+ROM_PATH="/usr/share/kvm/${ROM_NAME}"
+HASH_FILE="/root/${NODE_NAME}-vbios-8060s.sha256"
+EOF
+
+. /root/pve-node-vars.sh
+printf 'NODE=%s VM_ID=%s VM_NAME=%s ROM=%s\n' \
+  "$NODE_NAME" "$VM_ID" "$VM_NAME" "$ROM_NAME"</code></pre>
+        <div class="gate">
+          <h3>验收门 0</h3>
+          <label class="check"><input type="checkbox">节点名、PVE IP 和 VM ID 均为唯一值。</label>
+          <label class="check"><input type="checkbox">已确认 NAS 中存在 PVE-003 的直通前 Windows VM 备份。</label>
+          <label class="check"><input type="checkbox">已备份新机器原有 Windows/C/D 盘的重要数据。</label>
+        </div>
+      </section>
+
+      <section id="bios">
+        <h2>1. BIOS 与安装介质</h2>
+        <p>进入 EVO-X2 BIOS 的 Advanced 页面，只修改已经验证的虚拟化与显存选项：</p>
+        <table>
+          <tr><th>项目</th><th>设置</th></tr>
+          <tr><td>SVM Mode / AMD Virtualization</td><td><code>Enabled</code></td></tr>
+          <tr><td>IOMMU / AMD-Vi（如显示）</td><td><code>Enabled</code></td></tr>
+          <tr><td>iGPU Configuration</td><td><code>UMA_SPECIFIED</code>；若无此选项则保持 Auto</td></tr>
+          <tr><td>UMA Frame Buffer</td><td>先使用 16 GB 或 32 GB，不直接使用 64 GB</td></tr>
+          <tr><td>USB Boot</td><td><code>Enabled</code></td></tr>
+          <tr><td>Wake On LAN</td><td><code>Enabled</code></td></tr>
+          <tr><td>Fast Boot</td><td><code>Disabled</code></td></tr>
+          <tr><td>Boot Option #1</td><td>安装阶段选择 USB Device</td></tr>
+        </table>
+        <div class="note warn">不要修改内存时序、电压、超频、NVMe 模式或不确定的 I/O Port Access。先拍摄 BIOS 原始设置。</div>
+        <div class="gate">
+          <h3>验收门 1</h3>
+          <label class="check"><input type="checkbox">SVM 已启用，UMA 设置已记录。</label>
+          <label class="check"><input type="checkbox">Proxmox VE 9.2 安装 U 盘已插入。</label>
+          <label class="check"><input type="checkbox">已确认安装目标盘可以被清空。</label>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>2. 安装 Proxmox VE</h2>
+        <ol>
+          <li>从 U 盘启动，选择 <strong>Install Proxmox VE (Graphical)</strong>。</li>
+          <li>按 NVMe 型号和容量选择目标盘；安装会清空整盘。</li>
+          <li>单盘节点保持默认 <code>ext4 + LVM-thin</code>。</li>
+          <li>设置强 root 密码并保存到受控密码库。</li>
+          <li>填写唯一 FQDN、固定管理 IP、网关和 DNS。</li>
+          <li>安装完成后拔掉 U 盘并重启。</li>
+        </ol>
+        <p>本机控制台出现登录提示后，从 MIX 打开：</p>
+        <pre><code>https://<span class="placeholder">PVE管理IP</span>:8006</code></pre>
+        <p>通过控制台或 PVE Shell 记录：</p>
+        <pre><code>hostname -f
+ip -br address
+ip route
+pveversion -v
+uname -r</code></pre>
+        <div class="gate">
+          <h3>验收门 2</h3>
+          <label class="check"><input type="checkbox">MIX 可以登录 PVE Web UI。</label>
+          <label class="check"><input type="checkbox">管理 IP、网关和 DNS 正常。</label>
+          <label class="check"><input type="checkbox">安装 U 盘已拔出。</label>
+        </div>
+      </section>
+
+      <section id="update">
+        <h2>3. 配置仓库、更新并修正 IOMMU 参数</h2>
+        <p>无企业订阅时，先备份并禁用 Enterprise 源：</p>
+        <pre><code>set -e
+
+BACKUP_DIR="/root/apt-sources-backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+[ ! -f /etc/apt/sources.list ] || cp -a /etc/apt/sources.list "$BACKUP_DIR/"
+cp -a /etc/apt/sources.list.d "$BACKUP_DIR/"
+
+for FILE in \
+  /etc/apt/sources.list.d/pve-enterprise.sources \
+  /etc/apt/sources.list.d/pve-enterprise.list \
+  /etc/apt/sources.list.d/ceph.sources \
+  /etc/apt/sources.list.d/ceph.list
+do
+  [ ! -f "$FILE" ] || mv "$FILE" "$FILE.disabled"
+done
+
+cat &gt; /etc/apt/sources.list.d/pve-no-subscription.list &lt;&lt;'EOF'
+deb http://download.proxmox.com/debian/pve trixie pve-no-subscription
+EOF
+
+apt clean
+apt update
+apt full-upgrade -y</code></pre>
+        <p>升级后重启：</p>
+        <pre><code>reboot</code></pre>
+        <p>如需要为 GPU 直通添加内核参数，先确认启动方式：</p>
+        <pre><code>proxmox-boot-tool status
+grep -n 'GRUB_CMDLINE_LINUX_DEFAULT' /etc/default/grub 2&gt;/dev/null
+cat /etc/kernel/cmdline 2&gt;/dev/null</code></pre>
+        <details>
+          <summary>GRUB 节点</summary>
+          <div>
+            <pre><code>cp -a /etc/default/grub /etc/default/grub.pre-vfio
+nano /etc/default/grub</code></pre>
+            <p>在原参数中保留或加入：</p>
+            <pre><code>iommu=pt initcall_blacklist=sysfb_init</code></pre>
+            <p>不要加入 <code>amd_iommu=on</code>。该参数在 PVE-003 上触发过 <code>AMD-Vi: Unknown option -- 'on'</code>。</p>
+            <pre><code>update-grub</code></pre>
+          </div>
+        </details>
+        <details>
+          <summary>systemd-boot / proxmox-boot-tool 节点</summary>
+          <div>
+            <pre><code>cp -a /etc/kernel/cmdline /etc/kernel/cmdline.pre-vfio
+nano /etc/kernel/cmdline</code></pre>
+            <p>保持一整行，在原 root 参数后加入：</p>
+            <pre><code>iommu=pt initcall_blacklist=sysfb_init</code></pre>
+            <pre><code>proxmox-boot-tool refresh</code></pre>
+          </div>
+        </details>
+        <div class="note danger">不要同时修改 GRUB 和 <code>/etc/kernel/cmdline</code>。只修改当前节点实际使用的启动方式。</div>
+        <div class="gate">
+          <h3>验收门 3</h3>
+          <label class="check"><input type="checkbox"><code>apt update</code> 没有 401、DNS 或签名错误。</label>
+          <label class="check"><input type="checkbox">重启后 PVE Web UI 恢复。</label>
+          <label class="check"><input type="checkbox"><code>/proc/cmdline</code> 不含 <code>amd_iommu=on</code>。</label>
+        </div>
+      </section>
+
+      <section id="nas">
+        <h2>4. 将 NAS 接入新节点</h2>
+        <p>先在 Synology DSM 的 <code>PVE-Backups</code> 共享文件夹中，为新节点的管理 IP 增加 NFS 读写权限。</p>
+        <div class="path">
+          <span>数据中心</span><span>存储</span><span>添加</span><span>NFS</span>
+        </div>
+        <table>
+          <tr><th>字段</th><th>值</th></tr>
+          <tr><td>ID</td><td><code>nas-pve-backup</code></td></tr>
+          <tr><td>服务器</td><td><code>192.168.0.81</code></td></tr>
+          <tr><td>导出</td><td><code>/volume1/PVE-Backups</code></td></tr>
+          <tr><td>内容</td><td>VZDump backup file、ISO image、Snippets</td></tr>
+          <tr><td>节点</td><td>当前新节点</td></tr>
+        </table>
+        <p>VM 运行磁盘使用本机 <code>local-lvm</code>，不要放在备份 NAS 上。</p>
+        <pre><code>pvesm status
+pvesm list nas-pve-backup</code></pre>
+        <div class="gate">
+          <h3>验收门 4</h3>
+          <label class="check"><input type="checkbox"><code>nas-pve-backup</code> 状态为 active。</label>
+          <label class="check"><input type="checkbox">可以看到 PVE-003 的直通前 VM 备份。</label>
+        </div>
+      </section>
+
+      <section id="restore">
+        <h2>5. 从 NAS 恢复通用 Windows VM</h2>
+        <div class="note good"><strong>推荐：</strong>选择备注为 <code>pre-GPU passthrough baseline</code> 的备份。它包含 Windows、VirtIO 和软件，但不绑定 PVE-003 的 GPU、VBIOS、USB 或最终直显配置。</div>
+        <div class="path">
+          <span>nas-pve-backup</span><span>备份</span><span>选择直通前备份</span><span>恢复</span>
+        </div>
+        <table>
+          <tr><th>字段</th><th>设置</th></tr>
+          <tr><td>VM ID</td><td>填写当前节点唯一 ID，例如 <code>104</code></td></tr>
+          <tr><td>目标存储</td><td><code>local-lvm</code></td></tr>
+          <tr><td>启动后自动运行</td><td>暂不启用</td></tr>
+        </table>
+        <p>恢复完成后、首次启动前检查：</p>
+        <pre><code>VM_ID=<span class="placeholder">104</span>
+qm config "$VM_ID"</code></pre>
+        <p>如果误用了包含直通配置的备份，先删除节点专属硬件并恢复虚拟显示器：</p>
+        <pre><code>qm set "$VM_ID" --delete hostpci0 2&gt;/dev/null || true
+qm set "$VM_ID" --delete hostpci1 2&gt;/dev/null || true
+qm set "$VM_ID" --delete hostpci2 2&gt;/dev/null || true
+qm set "$VM_ID" --delete usb0 2&gt;/dev/null || true
+qm set "$VM_ID" --delete usb1 2&gt;/dev/null || true
+qm set "$VM_ID" --vga std
+qm set "$VM_ID" --onboot 0</code></pre>
+        <p>在 PVE Web 的“硬件 → 网络设备 net0 → 编辑”中生成新的 MAC 地址，避免与源 VM 冲突。</p>
+        <div class="gate">
+          <h3>验收门 5</h3>
+          <label class="check"><input type="checkbox">VM ID 和名称属于当前节点。</label>
+          <label class="check"><input type="checkbox">VM 使用新的 MAC 地址。</label>
+          <label class="check"><input type="checkbox">配置中没有 hostpci、USB 和 <code>vga: none</code>。</label>
+        </div>
+      </section>
+
+      <section id="windows">
+        <h2>6. 首次启动并唯一化 Windows</h2>
+        <p>通过 noVNC 启动 VM。首次恢复只使用虚拟显示器：</p>
+        <pre><code>qm start "$VM_ID"
+qm status "$VM_ID"</code></pre>
+        <p>在 Windows 管理员 PowerShell 中修改计算机名：</p>
+        <pre><code>Rename-Computer -NewName "<span class="placeholder">WIN11-GMK004</span>" -Restart</code></pre>
+        <p>重启后确认网络。优先使用 DHCP Reservation；不要复制源 VM 的固定 IP：</p>
+        <pre><code>Get-NetAdapter
+Get-NetIPConfiguration
+ipconfig /all</code></pre>
+        <p>确认 VM 能访问网关、NAS 和 PVE：</p>
+        <pre><code>ping <span class="placeholder">实际网关IP</span>
+ping 192.168.0.81
+ping <span class="placeholder">当前PVE管理IP</span>
+Resolve-DnsName download.microsoft.com</code></pre>
+        <div class="gate">
+          <h3>验收门 6</h3>
+          <label class="check"><input type="checkbox">Windows 名称已改为当前节点名称。</label>
+          <label class="check"><input type="checkbox">Windows 获得唯一 IP，未与 PVE 或其他 VM 冲突。</label>
+          <label class="check"><input type="checkbox">Windows Update 和基础软件正常。</label>
+        </div>
+      </section>
+
+      <section id="remote">
+        <h2>7. 验证 VirtIO、Guest Agent 和 RDP</h2>
+        <p>Windows 内确认：</p>
+        <pre><code>Get-Service -Name QEMU-GA
+Get-NetAdapter</code></pre>
+        <p>应看到 <code>QEMU-GA</code> 为 Running，网卡为 Red Hat VirtIO Ethernet Adapter。</p>
+        <p>PVE Shell 验证：</p>
+        <pre><code>qm agent "$VM_ID" ping
+qm guest cmd "$VM_ID" get-osinfo
+qm guest cmd "$VM_ID" network-get-interfaces</code></pre>
+        <p>Windows 11 Pro/Enterprise 中开启远程桌面；MIX 使用实际 VM IP 测试：</p>
+        <pre><code>Test-NetConnection <span class="placeholder">WINDOWS_VM_IP</span> -Port 3389
+mstsc /v:<span class="placeholder">WINDOWS_VM_IP</span></code></pre>
+        <div class="note warn">必须实际进入 RDP 桌面，不能只看到 Ping 成功。GPU 直通后 noVNC 会失去画面，RDP 是主要救援通道。</div>
+        <div class="gate">
+          <h3>验收门 7</h3>
+          <label class="check"><input type="checkbox">QEMU Guest Agent 正常。</label>
+          <label class="check"><input type="checkbox">MIX 的 3389 测试为 True。</label>
+          <label class="check"><input type="checkbox">已通过 RDP 实际登录 Windows。</label>
+        </div>
+      </section>
+
+      <section id="discovery">
+        <h2>8. 识别当前节点的 PCI 与 IOMMU</h2>
+        <p>先正常关闭 Windows：</p>
+        <pre><code>shutdown /s /t 0</code></pre>
+        <p>PVE Shell 确认 VM 已停止，再执行只读检测：</p>
+        <pre><code>qm status "$VM_ID"
+
+lspci -nn | grep -Ei 'VGA|Display|Audio|USB|Ethernet|Network'
+lspci -nnk -d "$GPU_ID"
+lspci -nnk -d "$AUDIO_ID"
+
+dmesg | grep -Ei 'AMD-Vi|IOMMU|interrupt remapping' | head -100</code></pre>
+        <p>显示 GPU 和 Audio 的完整分组：</p>
+        <pre><code>for ID in "$GPU_ID" "$AUDIO_ID"; do
+  DEVICE="$(lspci -Dnnd "$ID" | awk 'NR==1 {print $1}')"
+  echo "===== $ID / $DEVICE ====="
+
+  if [ -n "$DEVICE" ] &amp;&amp; [ -e "/sys/bus/pci/devices/$DEVICE/iommu_group" ]; then
+    GROUP="$(basename "$(readlink "/sys/bus/pci/devices/$DEVICE/iommu_group")")"
+    echo "IOMMU GROUP: $GROUP"
+    for MEMBER in /sys/kernel/iommu_groups/"$GROUP"/devices/*; do
+      lspci -nns "$(basename "$MEMBER")"
+    done
+  else
+    echo "NO IOMMU GROUP"
+  fi
+done</code></pre>
+        <p>自动记录实际 PCI 地址：</p>
+        <pre><code>GPU_PCI="$(lspci -Dnnd "$GPU_ID" | awk 'NR==1 {print $1}')"
+AUDIO_PCI="$(lspci -Dnnd "$AUDIO_ID" | awk 'NR==1 {print $1}')"
+printf 'GPU_PCI=%s\nAUDIO_PCI=%s\n' "$GPU_PCI" "$AUDIO_PCI"</code></pre>
+        <div class="note danger">管理网卡不得出现在 GPU 或 Audio 的 IOMMU Group。不要假设后续节点仍然使用 PVE-003 的 <code>c5:00.0</code> 和 <code>c5:00.1</code>。</div>
+        <div class="gate">
+          <h3>验收门 8</h3>
+          <label class="check"><input type="checkbox">检测到 <code>1002:1586</code> 和 <code>1002:1640</code>。</label>
+          <label class="check"><input type="checkbox">GPU/Audio 分组中没有管理网卡。</label>
+          <label class="check"><input type="checkbox">已记录当前节点实际 PCI 地址和 IOMMU Group。</label>
+        </div>
+      </section>
+
+      <section id="vbios">
+        <h2>9. 从当前节点提取 VBIOS</h2>
+        <div class="note danger"><strong>每台机器单独提取。</strong>不要把 PVE-003 的 <code>gmk003-vbios-8060s.bin</code> 复制给 PVE-004/005。</div>
+        <pre><code>ls -lh /sys/firmware/acpi/tables/VFCT
+apt update
+apt install -y build-essential bsdextrautils curl</code></pre>
+        <p>从本仓库取得已验证提取器：</p>
+        <pre><code>curl -fL \
+  https://raw.githubusercontent.com/kylehuang0323-ai/Lab-setup/main/scripts/extract-vfct-vbios.c \
+  -o /root/vbios.c
+
+gcc /root/vbios.c -O2 -Wall -Wextra -o /root/vbios
+cd /root
+./vbios
+ls -lh /root/vbios_*.bin</code></pre>
+        <p>安装当前节点的 ROM：</p>
+        <pre><code>ROM_NAME="${NODE_NAME}-vbios-8060s.bin"
+ROM_PATH="/usr/share/kvm/${ROM_NAME}"
+HASH_FILE="/root/${NODE_NAME}-vbios-8060s.sha256"
+
+test -s /root/vbios_1002_1586.bin || {
+  echo "ERROR: Radeon 8060S VBIOS not found or empty"
+  exit 1
+}
+
+install -m 0644 /root/vbios_1002_1586.bin "$ROM_PATH"
+sha256sum "$ROM_PATH" | tee "$HASH_FILE"
+hexdump -C "$ROM_PATH" | head
+ls -lh /root/vbios_1002_1586.bin "$ROM_PATH" "$HASH_FILE"</code></pre>
+        <p>文件头必须出现 <code>55 aa</code>，文件不能是 0 字节。</p>
+        <div class="gate">
+          <h3>验收门 9</h3>
+          <label class="check"><input type="checkbox">VFCT 存在。</label>
+          <label class="check"><input type="checkbox">生成了本机 <code>vbios_1002_1586.bin</code>。</label>
+          <label class="check"><input type="checkbox">ROM 头为 <code>55 aa</code>，SHA256 已记录。</label>
+        </div>
+      </section>
+
+      <section id="vfio">
+        <h2>10. 配置 VFIO</h2>
+        <p>先备份当前配置：</p>
+        <pre><code>BACKUP_DIR="/root/${NODE_NAME}-backup/pre-vfio"
+mkdir -p "$BACKUP_DIR"
+cp -a /etc/modprobe.d "$BACKUP_DIR/"
+cp -a /etc/modules "$BACKUP_DIR/modules.backup"
+cp -a /etc/default/grub "$BACKUP_DIR/grub.backup" 2&gt;/dev/null || true
+cp -a /etc/kernel/cmdline "$BACKUP_DIR/kernel-cmdline.backup" 2&gt;/dev/null || true</code></pre>
+        <p>加载 VFIO 模块：</p>
+        <pre><code>for MODULE in vfio vfio_iommu_type1 vfio_pci; do
+  grep -qxF "$MODULE" /etc/modules || echo "$MODULE" &gt;&gt; /etc/modules
+done</code></pre>
+        <p>绑定 Radeon 8060S 和 GPU Audio：</p>
+        <pre><code>cat &gt; /etc/modprobe.d/vfio.conf &lt;&lt;'EOF'
+options vfio-pci ids=1002:1586,1002:1640 disable_vga=1
+softdep amdgpu pre: vfio-pci
+softdep radeon pre: vfio-pci
+softdep snd_hda_intel pre: vfio-pci
+EOF
+
+cat &gt; /etc/modprobe.d/gpu-blacklist.conf &lt;&lt;'EOF'
+blacklist amdgpu
+blacklist radeon
+EOF
+
+update-initramfs -u -k all</code></pre>
+        <p>不全局屏蔽 <code>snd_hda_intel</code>，避免影响其他 HDA 音频设备。确认 VM 已停止、MIX 可访问 PVE 后重启：</p>
+        <pre><code>qm status "$VM_ID"
+reboot</code></pre>
+        <p>本机显示器在 PVE 内核阶段变黑可能是正常现象。从 MIX 重新进入 PVE，先恢复变量再验证：</p>
+        <pre><code>. /root/pve-node-vars.sh
+
+lsmod | grep vfio
+lspci -nnk -d "$GPU_ID"
+lspci -nnk -d "$AUDIO_ID"</code></pre>
+        <p>两个设备都必须显示：</p>
+        <pre><code>Kernel driver in use: vfio-pci</code></pre>
+        <div class="gate">
+          <h3>验收门 10</h3>
+          <label class="check"><input type="checkbox">GPU 和 Audio 均使用 vfio-pci。</label>
+          <label class="check"><input type="checkbox">PVE Web/SSH 和 NAS 仍然正常。</label>
+        </div>
+      </section>
+
+      <section id="first-gpu">
+        <h2>11. 首次给 VM 添加 GPU</h2>
+        <p>本轮保留虚拟显示器和 RDP，不设置 <code>x-vga=1</code>，不设置 <code>vga: none</code>。</p>
+        <p>先备份 VM 配置：</p>
+        <pre><code>NODE="$(hostname)"
+BACKUP_DIR="/root/${NODE_NAME}-backup/vm${VM_ID}-pre-hostpci"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+sha256sum -c "$HASH_FILE"</code></pre>
+        <p>重新载入变量并再次检测 PCI 地址，然后添加硬件：</p>
+        <pre><code>. /root/pve-node-vars.sh
+GPU_PCI="$(lspci -Dnnd "$GPU_ID" | awk 'NR==1 {print $1}')"
+AUDIO_PCI="$(lspci -Dnnd "$AUDIO_ID" | awk 'NR==1 {print $1}')"
+
+qm set "$VM_ID" \
+  --hostpci0 "${GPU_PCI},pcie=1,romfile=${ROM_NAME}"
+
+qm set "$VM_ID" \
+  --hostpci1 "${AUDIO_PCI},pcie=1,rombar=0"
+
+qm config "$VM_ID" | grep -E '^(bios|machine|cpu|vga|hostpci)'</code></pre>
+        <p>启动一次：</p>
+        <pre><code>qm start "$VM_ID"
+qm status "$VM_ID"</code></pre>
+        <p><code>swtpm_setup: Not overwriting existing state file.</code> 不是错误；最终状态为 running 即可。</p>
+        <p>Windows 管理员 PowerShell 检查：</p>
+        <pre><code>Get-PnpDevice -Class Display |
+  Format-Table Status,FriendlyName,InstanceId -AutoSize
+
+Get-CimInstance Win32_VideoController |
+  Select-Object Name,DriverVersion,Status</code></pre>
+        <p>安装 AMD 官方驱动，确认 Radeon 8060S 为 OK、无 Code 43；同时从 MIX 验证 RDP。</p>
+        <pre><code>Test-NetConnection <span class="placeholder">WINDOWS_VM_IP</span> -Port 3389</code></pre>
+        <p>确认后在 Windows 正常关机：</p>
+        <pre><code>shutdown /s /t 0</code></pre>
+        <div class="gate">
+          <h3>验收门 11</h3>
+          <label class="check"><input type="checkbox">Radeon 8060S 状态为 OK，没有 Code 43。</label>
+          <label class="check"><input type="checkbox">RDP 仍然可用。</label>
+          <label class="check"><input type="checkbox">Windows 已完整关机，VM 状态为 stopped。</label>
+        </div>
+      </section>
+
+      <section id="display">
+        <h2>12. 切换到物理 HDMI/DP 直显</h2>
+        <p>保存已工作的 GPU 配置：</p>
+        <pre><code>BACKUP_DIR="/root/${NODE_NAME}-backup/vm${VM_ID}-gpu-working"
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"</code></pre>
+        <p>将 GPU 设置为主显示并关闭虚拟显示器：</p>
+        <pre><code>qm set "$VM_ID" \
+  --hostpci0 "${GPU_PCI},pcie=1,romfile=${ROM_NAME},x-vga=1"
+
+qm set "$VM_ID" --vga none
+
+qm config "$VM_ID" |
+  grep -E '^(bios|machine|cpu|vga|hostpci)'</code></pre>
+        <p>关闭整个宿主机，等待 30 秒后手动开机：</p>
+        <pre><code>poweroff</code></pre>
+        <p>PVE Web 恢复后，不启用自动启动，手动启动 VM 一次：</p>
+        <pre><code>qm status "$VM_ID"
+qm start "$VM_ID"
+qm status "$VM_ID"</code></pre>
+        <p>预期物理显示器出现 Windows；此时 noVNC 没有画面属于正常现象。</p>
+        <div class="gate">
+          <h3>验收门 12</h3>
+          <label class="check"><input type="checkbox">物理 HDMI/DP 出现 Windows。</label>
+          <label class="check"><input type="checkbox">分辨率、刷新率、RDP 和 PVE Web 正常。</label>
+          <label class="check"><input type="checkbox">Radeon 8060S 仍无 Code 43。</label>
+        </div>
+      </section>
+
+      <section id="usb">
+        <h2>13. 添加本地 USB 键盘和鼠标</h2>
+        <p>键鼠必须接在当前 GMK 节点，而不是 MIX。PVE Shell 使用 <code>lsusb</code> 识别设备；无法判断时通过拔插比较。</p>
+        <pre><code>lsusb</code></pre>
+        <p>通过 RDP 在 Windows 中正常关机，然后在 PVE Web 添加：</p>
+        <div class="path">
+          <span>VM</span><span>硬件</span><span>添加</span><span>USB 设备</span><span>使用 Vendor/Device ID</span>
+        </div>
+        <ul>
+          <li>有线键盘和鼠标分别添加。</li>
+          <li>无线键鼠共用接收器时只添加接收器一次。</li>
+          <li>不要添加 WinPE、安装 U 盘、USB 网卡或备份硬盘。</li>
+          <li>暂不直通整个 USB Controller。</li>
+        </ul>
+        <pre><code>qm config "$VM_ID" | grep -E '^(usb|hostpci|vga)'
+qm start "$VM_ID"</code></pre>
+        <div class="gate">
+          <h3>验收门 13</h3>
+          <label class="check"><input type="checkbox">物理键盘和鼠标可登录 Windows。</label>
+          <label class="check"><input type="checkbox">RDP 和 PVE Web 仍可用。</label>
+        </div>
+      </section>
+
+      <section id="validation">
+        <h2>14. 三轮手动冷启动验收</h2>
+        <div class="note warn">手动冷启动连续成功三次前，不启用自动启动。不要使用 Windows 的“重新启动”代替冷启动。</div>
+        <p>每一轮：</p>
+        <ol>
+          <li>Windows 执行 <code>shutdown /s /t 0</code>。</li>
+          <li>PVE 确认 VM 为 stopped。</li>
+          <li>PVE 执行 <code>poweroff</code>。</li>
+          <li>等待 30 秒，手动打开 GMK。</li>
+          <li>等待 PVE Web 恢复，手动启动 VM 一次。</li>
+          <li>验证物理显示、USB、RDP、PVE Web 和 Code 43。</li>
+        </ol>
+        <table>
+          <tr><th>轮次</th><th>PVE</th><th>Windows 直显</th><th>USB</th><th>RDP</th><th>Code 43</th></tr>
+          <tr><td>1</td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td>2</td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td>3</td><td></td><td></td><td></td><td></td><td></td></tr>
+        </table>
+      </section>
+
+      <section id="autostart">
+        <h2>15. 启用并验证自动启动</h2>
+        <pre><code>qm set "$VM_ID" --onboot 1
+qm set "$VM_ID" --startup order=1,up=0,down=90
+pvenode config set --startall-onboot-delay 30
+
+qm config "$VM_ID" | grep -E '^(onboot|startup)'
+pvenode config get</code></pre>
+        <p>必须看到：</p>
+        <pre><code>onboot: 1
+startup: order=1,up=0,down=90
+startall-onboot-delay: 30</code></pre>
+        <p>再做三轮自动冷启动。每轮开机后不要执行 <code>qm start</code>，等待 PVE 自动启动 VM：</p>
+        <pre><code>qm status "$VM_ID"
+systemctl status pve-guests --no-pager</code></pre>
+        <p>日志应包含：</p>
+        <pre><code>Delaying on-boot 'startall' command for 30 second(s)
+Starting VM <span class="placeholder">VM_ID</span>
+VM <span class="placeholder">VM_ID</span> started
+status=0/SUCCESS</code></pre>
+        <div class="gate">
+          <h3>验收门 15</h3>
+          <label class="check"><input type="checkbox">连续三轮自动进入 Windows。</label>
+          <label class="check"><input type="checkbox">物理显示、USB、RDP 和 PVE Web 均正常。</label>
+          <label class="check"><input type="checkbox">三轮均无 Code 43 或黑屏。</label>
+        </div>
+      </section>
+
+      <section id="backup">
+        <h2>16. 保存最终节点配置和备份</h2>
+        <p>保存最终配置文件：</p>
+        <pre><code>NODE="$(hostname)"
+BACKUP_DIR="/root/${NODE_NAME}-backup/final"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+
+mkdir -p "$BACKUP_DIR"
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+cp -a "$ROM_PATH" "$BACKUP_DIR/"
+cp -a "$HASH_FILE" "$BACKUP_DIR/"
+ls -lh "$BACKUP_DIR"</code></pre>
+        <p>在 PVE Web 中将最终 VM 备份到 NAS：</p>
+        <div class="path">
+          <span>VM</span><span>备份</span><span>立即备份</span><span>nas-pve-backup</span><span>Stop + ZSTD</span>
+        </div>
+        <table>
+          <tr><th>备份类型</th><th>用途</th></tr>
+          <tr><td>直通前通用基线</td><td>恢复到后续节点；不包含 hostpci、USB、vga:none</td></tr>
+          <tr><td>当前节点最终备份</td><td>仅恢复本节点；恢复到其他节点后必须删除节点专属硬件配置</td></tr>
+          <tr><td>VBIOS + 配置文件</td><td>随节点归档；VBIOS 不应假设已包含在普通 VM 备份中</td></tr>
+        </table>
+      </section>
+
+      <section id="rollback">
+        <h2>17. 黑屏或启动失败时回滚</h2>
+        <p>只要 PVE Web/SSH 可用：</p>
+        <pre><code>qm stop "$VM_ID"
+qm set "$VM_ID" --delete hostpci0
+qm set "$VM_ID" --delete hostpci1
+qm set "$VM_ID" --delete hostpci2 2&gt;/dev/null || true
+qm set "$VM_ID" --vga std
+qm set "$VM_ID" --onboot 0
+
+mv /etc/modprobe.d/vfio.conf /etc/modprobe.d/vfio.conf.disabled
+
+for FILE in \
+  /etc/modprobe.d/gpu-blacklist.conf \
+  /etc/modprobe.d/gmk003-gpu-blacklist.conf \
+  /etc/modprobe.d/pve-blacklist.conf
+do
+  [ ! -f "$FILE" ] || mv "$FILE" "$FILE.disabled"
+done
+
+update-initramfs -u -k all</code></pre>
+        <p>恢复对应 Bootloader 的备份后更新 GRUB 或 proxmox-boot-tool，再重启。详细分流见 <a href="proxmox-gpu-passthrough.html#rollback">GPU 指南紧急回滚</a>。</p>
+        <div class="note danger">AMD reset bug 常见表现是第一次冷启动正常，VM 重启后黑屏。不要反复执行 stop/start；正常关机，整机断电等待 30 秒后冷启动，并且只启动 VM 一次。</div>
+      </section>
+
+      <section id="handoff">
+        <h2>18. 节点交付记录</h2>
+        <table>
+          <tr><th>字段</th><th>填写</th></tr>
+          <tr><td>节点名 / PVE IP</td><td></td></tr>
+          <tr><td>VM ID / VM 名称 / VM IP</td><td></td></tr>
+          <tr><td>GPU / Audio PCI 地址</td><td></td></tr>
+          <tr><td>GPU / Audio IOMMU Group</td><td></td></tr>
+          <tr><td>VBIOS SHA256</td><td></td></tr>
+          <tr><td>AMD 驱动版本</td><td></td></tr>
+          <tr><td>USB Vendor/Device ID</td><td></td></tr>
+          <tr><td>直通前通用备份文件</td><td></td></tr>
+          <tr><td>最终节点备份文件</td><td></td></tr>
+          <tr><td>3×手动冷启动</td><td></td></tr>
+          <tr><td>3×自动冷启动</td><td></td></tr>
+          <tr><td>完成日期 / 操作人</td><td></td></tr>
+        </table>
+        <div class="note good"><strong>交付完成定义：</strong>PVE 自动启动后等待 30 秒，Windows VM 自动运行；物理显示、USB 键鼠、RDP、PVE Web、NAS 备份全部正常；连续手动和自动冷启动均无 Code 43 或黑屏。</div>
+      </section>
+
+      <p class="footer">GMK EVO-X2 · Proxmox 后续节点复制部署运行手册 · v1.0 · 2026-09-08</p>
+    </main>
+  </div>
+
+  <script>
+    const storageKey = 'pve-node-rollout-checklist-v1';
+    const checks = [...document.querySelectorAll('.check input[type="checkbox"]')];
+
+    function saveChecks() {
+      const state = {};
+      checks.forEach((check, index) => { state[index] = check.checked; });
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    try {
+      const state = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      checks.forEach((check, index) => {
+        check.checked = Boolean(state[index]);
+        check.addEventListener('change', saveChecks);
+      });
+    } catch {
+      checks.forEach(check => check.addEventListener('change', saveChecks));
+    }
+
+    document.querySelectorAll('pre').forEach(pre => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy';
+      button.textContent = '复制';
+      button.setAttribute('aria-label', '复制命令');
+      button.addEventListener('click', async () => {
+        const code = pre.querySelector('code');
+        try {
+          await navigator.clipboard.writeText(code ? code.innerText : pre.innerText);
+          button.textContent = '已复制';
+        } catch {
+          button.textContent = '复制失败';
+        }
+        setTimeout(() => { button.textContent = '复制'; }, 1400);
+      });
+      pre.appendChild(button);
+    });
+  </script>
+</body>
+</html>
