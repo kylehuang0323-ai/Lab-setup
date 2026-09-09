@@ -11,6 +11,7 @@ I-Lab 裸金属工作站部署文档站 — 12× GMK EVO-X2 + Synology NAS 统�
 | [NAS 配置操作手册](https://kylehuang0323-ai.github.io/Lab-setup/) | Synology NAS 完整配置指南（共享文件夹、SMB/NFS、Docker 服务） |
 | [裸金属部署方案 v2.0](https://kylehuang0323-ai.github.io/Lab-setup/deployment-plan.html) | 整体架构、Golden Image、批量部署、维护 SOP |
 | [PVE 后续节点复制部署运行手册](https://kylehuang0323-ai.github.io/Lab-setup/proxmox-node-rollout.html) | 按 PVE-003 实测顺序完成第 2、3 台 EVO-X2 的 PVE、Windows、NAS、GPU、USB、冷启动与自动启动 |
+| [Proxmox VM 基线快照与版本封存指南](https://kylehuang0323-ai.github.io/Lab-setup/proxmox-snapshot-baseline.html) | VM103 第一版快照、配置/VBIOS归档、NAS备份、冷启动验收、回滚和版本升级 |
 | [Proxmox VE 9.2 安装与 GPU 直通指南](https://kylehuang0323-ai.github.io/Lab-setup/proxmox-gpu-passthrough.html) | Radeon 8060S、IOMMU、VFIO、VBIOS、本地直显与故障回滚技术参考 |
 | [Proxmox Windows VM 远程访问指南](https://kylehuang0323-ai.github.io/Lab-setup/proxmox-vm-remote-access.html) | noVNC、VirtIO、QEMU Guest Agent、RDP、网络与防火墙排障 |
 | [驱动安装指南](https://kylehuang0323-ai.github.io/Lab-setup/driver-install.html) | GMK EVO-X2 全部驱动一键安装命令与验证清单 |
@@ -28,6 +29,7 @@ I-Lab 裸金属工作站部署文档站 — 12× GMK EVO-X2 + Synology NAS 统�
 ├── index.html              # NAS 配置操作手册（GitHub Pages 首页）
 ├── deployment-plan.html    # 裸金属部署方案 v2.0
 ├── proxmox-node-rollout.html # PVE 后续节点复制部署运行手册
+├── proxmox-snapshot-baseline.html # PVE VM 基线快照与版本封存指南
 ├── proxmox-gpu-passthrough.html # Proxmox VE 9.2 + Radeon 8060S GPU 直通指南
 ├── proxmox-vm-remote-access.html # Proxmox Windows VM 远程访问与排障指南
 ├── driver-install.html     # GMK EVO-X2 驱动安装指南

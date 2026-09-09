@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Proxmox VM 基线快照与版本封存指南</title>
+  <style>
+    :root {
+      --bg: #edf2f7;
+      --surface: #ffffff;
+      --surface-2: #f5f8fc;
+      --ink: #172033;
+      --muted: #566278;
+      --line: #d3dce8;
+      --blue: #075fa8;
+      --blue-soft: #dceeff;
+      --green: #08704e;
+      --green-soft: #d9f5e8;
+      --amber: #7a4a00;
+      --amber-soft: #fff0c4;
+      --red: #a4262c;
+      --red-soft: #ffe5e7;
+      --code: #0c1422;
+      --code-text: #eef5ff;
+      --shadow: 0 12px 34px rgba(20, 39, 68, .09);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #08111f;
+        --surface: #111c2d;
+        --surface-2: #172438;
+        --ink: #edf4ff;
+        --muted: #b7c5d9;
+        --line: #31425d;
+        --blue: #79c1ff;
+        --blue-soft: #173754;
+        --green: #65deb2;
+        --green-soft: #123c31;
+        --amber: #ffd070;
+        --amber-soft: #49330a;
+        --red: #ff979c;
+        --red-soft: #4b1b20;
+        --code: #050a13;
+        --code-text: #edf4ff;
+        --shadow: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.72 "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+    a { color: var(--blue); }
+    code { font-family: Consolas, "Cascadia Code", monospace; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      backdrop-filter: blur(10px);
+    }
+    .topbar strong { margin-right: auto; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .button:hover { border-color: var(--blue); color: var(--blue); }
+    .layout {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 940px);
+      gap: 24px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .toc {
+      position: sticky;
+      top: 84px;
+      align-self: start;
+      max-height: calc(100vh - 104px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 17px; }
+    .toc a {
+      display: block;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 14px;
+      text-decoration: none;
+    }
+    .toc a:hover { background: var(--blue-soft); color: var(--blue); }
+    main { min-width: 0; }
+    .hero, section {
+      margin-bottom: 22px;
+      padding: clamp(21px, 4vw, 34px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--green-soft) 72%, var(--surface)), var(--surface) 62%);
+    }
+    .hero h1 {
+      max-width: 20ch;
+      margin: 8px 0 14px;
+      font-size: clamp(30px, 5vw, 53px);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+    .hero p { max-width: 75ch; color: var(--muted); font-size: 18px; }
+    .badge {
+      display: inline-block;
+      margin: 0 6px 6px 0;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    h2 {
+      margin: 0 0 14px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(23px, 3vw, 30px);
+      line-height: 1.25;
+      text-wrap: balance;
+    }
+    h3 { margin: 24px 0 9px; font-size: 20px; text-wrap: balance; }
+    p, li, th, td { overflow-wrap: anywhere; text-wrap: pretty; }
+    table {
+      display: block;
+      width: 100%;
+      margin: 14px 0;
+      overflow-x: auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--blue-soft); }
+    pre {
+      position: relative;
+      overflow: auto;
+      margin: 13px 0;
+      padding: 18px;
+      border: 1px solid #2b3b54;
+      border-radius: 10px;
+      background: var(--code);
+      color: var(--code-text);
+      line-height: 1.55;
+    }
+    pre code { font-size: 14px; }
+    .copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 5px 9px;
+      border: 1px solid #53647d;
+      border-radius: 6px;
+      background: #202d42;
+      color: #fff;
+      cursor: pointer;
+    }
+    .note {
+      margin: 16px 0;
+      padding: 15px 17px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--blue-soft);
+    }
+    .note.good { background: var(--green-soft); }
+    .note.warn { background: var(--amber-soft); }
+    .note.danger { background: var(--red-soft); }
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      font-weight: 650;
+    }
+    .flow span:not(:last-child)::after { content: " →"; color: var(--muted); }
+    .check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 7px 0;
+      padding: 8px 10px;
+      border-radius: 7px;
+    }
+    .check:hover { background: var(--surface-2); }
+    .check input {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      margin-top: 5px;
+      accent-color: var(--green);
+    }
+    .check:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+    .gate {
+      margin: 18px 0;
+      padding: 16px;
+      border: 2px solid var(--green);
+      border-radius: 11px;
+    }
+    .gate h3 { margin: 0 0 8px; color: var(--green); }
+    .footer { padding: 10px 20px 50px; color: var(--muted); text-align: center; }
+    @media (max-width: 900px) {
+      html, body { max-width: 100%; overflow-x: hidden; }
+      .topbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .topbar strong { grid-column: 1 / -1; margin-right: 0; }
+      .topbar .button { min-width: 0; white-space: normal; text-align: center; }
+      .layout { grid-template-columns: 1fr; padding: 14px; }
+      .toc { position: relative; top: 0; max-height: 235px; }
+      main, .hero, section { min-width: 0; max-width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      body { background: #fff; color: #000; }
+      .topbar, .toc, .copy { display: none !important; }
+      .layout { display: block; max-width: none; padding: 0; }
+      .hero, section { box-shadow: none; break-inside: auto; }
+      pre { white-space: pre-wrap; word-break: break-word; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topbar" aria-label="文档导航">
+    <strong>PVE VM 基线快照与版本封存</strong>
+    <a class="button" href="proxmox-node-rollout.html">节点部署主流程</a>
+    <a class="button" href="proxmox-gpu-passthrough.html">GPU 直通</a>
+    <a class="button" href="index.html">文档首页</a>
+    <button class="button" type="button" onclick="window.print()">打印 / PDF</button>
+  </nav>
+
+  <div class="layout">
+    <aside class="toc">
+      <h2>快照与封存流程</h2>
+      <a href="#overview">模块定位</a>
+      <a href="#layers">1. 三种保护层</a>
+      <a href="#preflight">2. 封存前检查</a>
+      <a href="#snapshot">3. 创建 V1 快照</a>
+      <a href="#config">4. 保存配置与 VBIOS</a>
+      <a href="#backup">5. NAS 镜像备份</a>
+      <a href="#coldboot">6. 冷启动验收</a>
+      <a href="#rollback">7. 快照回滚</a>
+      <a href="#versions">8. 版本管理</a>
+      <a href="#portable">9. 跨节点限制</a>
+      <a href="#automation">10. 自动回滚边界</a>
+    </aside>
+
+    <main>
+      <header class="hero" id="overview">
+        <span class="badge">VM103 第一版封存</span>
+        <span class="badge">local-lvm 快照</span>
+        <span class="badge">NAS VZDump</span>
+        <h1>先锁定一个可恢复的干净版本</h1>
+        <p>适用于已经完成 Radeon 8060S、USB、RDP、本地直显和 PVE 自动启动验证的 Windows VM。当前 VM103 应先保存“正常账户登录已恢复”的 V1，再继续测试无密码登录、软件变更或每日自动回滚。</p>
+        <div class="note good"><strong>VM103 的 V1 定义：</strong>正常账户登录、GPU/USB/RDP/自动启动可用，尚未将新的无密码自动登录写入正式基线。封存日期为 2026-09-09。</div>
+      </header>
+
+      <section id="layers">
+        <h2>1. 快照、备份和模板不是同一件事</h2>
+        <table>
+          <tr><th>保护层</th><th>用途</th><th>限制</th></tr>
+          <tr><td>本地快照</td><td>几分钟内把当前 VM 回滚到已知状态</td><td>依赖当前 PVE 和 local-lvm；宿主盘损坏时不能恢复</td></tr>
+          <tr><td>NAS VZDump 备份</td><td>节点或虚拟磁盘损坏后的灾难恢复</td><td>恢复时间长于快照；外置 VBIOS 需要单独保存</td></tr>
+          <tr><td>Golden Image / 模板</td><td>部署 GMK004、GMK005 等新节点</td><td>不能携带 GMK003 的 PCI、VBIOS、USB 和最终直显配置</td></tr>
+        </table>
+        <div class="note danger"><strong>不要把正在运行的 VM103 转换为模板。</strong>模板本身不能继续作为生产 Windows VM 自动启动。</div>
+        <div class="note warn"><strong>数据范围：</strong>当前 C、D 分区位于同一块 VM 虚拟磁盘。回滚快照时，C 和 D 都会回到快照时刻；NAS 文件不在该虚拟磁盘中，不随 VM 快照回滚。</div>
+      </section>
+
+      <section id="preflight">
+        <h2>2. 封存前检查</h2>
+        <p>在 VM103 的 Windows 管理员 PowerShell 中执行：</p>
+        <pre><code>whoami
+
+Get-CimInstance Win32_VideoController |
+  Select-Object Name,DriverVersion,Status
+
+Get-Volume -DriveLetter C,D |
+  Format-Table DriveLetter,FileSystemLabel,Size,SizeRemaining -AutoSize
+
+Get-Service QEMU-GA
+
+Get-LocalUser |
+  Format-Table Name,Enabled,PasswordRequired,PasswordLastSet -AutoSize</code></pre>
+        <div class="gate">
+          <h3>封存门</h3>
+          <label class="check"><input type="checkbox">原账户可以正常登录。</label>
+          <label class="check"><input type="checkbox">Radeon 8060S 状态为 OK，没有 Code 43。</label>
+          <label class="check"><input type="checkbox">C、D盘和 NAS 正常。</label>
+          <label class="check"><input type="checkbox">QEMU-GA 为 Running，RDP 可用。</label>
+          <label class="check"><input type="checkbox">没有待处理安装、更新或重启。</label>
+        </div>
+        <p>检查完成后正常关闭 Windows：</p>
+        <pre><code>shutdown /s /t 0</code></pre>
+        <p>PVE Shell 确认：</p>
+        <pre><code>qm status 103</code></pre>
+        <p>必须显示 <code>status: stopped</code>。不保存运行内存状态，不为 GPU 直通 VM 创建含 RAM 的快照。</p>
+      </section>
+
+      <section id="snapshot">
+        <h2>3. 创建 VM103 第一版快照</h2>
+        <h3>PVE Shell</h3>
+        <pre><code>VM_ID=103
+SNAPSHOT="clean-baseline-v1"
+
+qm snapshot "$VM_ID" "$SNAPSHOT" \
+  --description "GMK003 baseline v1 - normal login restored - GPU USB RDP verified - 2026-09-09"
+
+qm listsnapshot "$VM_ID"</code></pre>
+        <p>应看到 <code>clean-baseline-v1</code>。如果名称已经存在，不要覆盖或先删除，改用 <code>clean-baseline-v1a</code>，确认旧版本不再需要后再清理。</p>
+        <h3>PVE Web</h3>
+        <div class="flow">
+          <span>VM 103</span><span>快照</span><span>创建快照</span><span>clean-baseline-v1</span>
+        </div>
+        <table>
+          <tr><th>字段</th><th>值</th></tr>
+          <tr><td>名称</td><td><code>clean-baseline-v1</code></td></tr>
+          <tr><td>描述</td><td><code>GMK003 baseline v1 - normal login restored - 2026-09-09</code></td></tr>
+          <tr><td>包含 RAM</td><td>不勾选；VM 应处于 stopped</td></tr>
+        </table>
+      </section>
+
+      <section id="config">
+        <h2>4. 同步保存 VM 配置与本机 VBIOS</h2>
+        <p>快照不能替代外部配置归档。VM103 使用的 <code>romfile</code> 位于宿主机 <code>/usr/share/kvm</code>，需要单独保存。</p>
+        <pre><code>VM_ID=103
+NODE="$(hostname)"
+BACKUP_DIR="/root/gmk003-backup/baseline-v1-20260909"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+ROM_PATH="/usr/share/kvm/gmk003-vbios-8060s.bin"
+
+mkdir -p "$BACKUP_DIR"
+
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+cp -a "$ROM_PATH" "$BACKUP_DIR/"
+
+sha256sum "$BACKUP_DIR/gmk003-vbios-8060s.bin" \
+  &gt; "$BACKUP_DIR/gmk003-vbios-8060s.sha256"
+
+ls -lh "$BACKUP_DIR"</code></pre>
+        <p>必须同时看到：</p>
+        <pre><code>103.conf
+103.conf.txt
+gmk003-vbios-8060s.bin
+gmk003-vbios-8060s.sha256</code></pre>
+        <div class="note">其他节点要使用自己的 VM ID、节点目录和本机提取的 VBIOS。不要将 GMK003 的 ROM 作为 GMK004/005 默认文件。</div>
+      </section>
+
+      <section id="backup">
+        <h2>5. 创建 NAS 第一版镜像备份</h2>
+        <div class="flow">
+          <span>VM 103</span><span>备份</span><span>立即备份</span><span>nas-pve-backup</span>
+        </div>
+        <table>
+          <tr><th>选项</th><th>设置</th></tr>
+          <tr><td>存储</td><td><code>nas-pve-backup</code></td></tr>
+          <tr><td>模式</td><td><code>Stop</code></td></tr>
+          <tr><td>压缩</td><td><code>ZSTD</code></td></tr>
+          <tr><td>备注</td><td><code>GMK003 baseline v1 - normal login restored - 2026-09-09</code></td></tr>
+        </table>
+        <p>等待任务显示 <code>TASK OK</code>，然后检查：</p>
+        <pre><code>pvesm list nas-pve-backup --vmid 103</code></pre>
+        <div class="note warn">该 VZDump 是 GMK003 节点专用恢复版本。虽然可以恢复到其他 PVE，但首次启动前必须删除旧的 hostpci、USB、VBIOS名称、<code>vga: none</code>、重复 MAC 和自动启动配置。</div>
+      </section>
+
+      <section id="coldboot">
+        <h2>6. 封存后的冷启动验收</h2>
+        <p>快照和 NAS 备份都完成后，关闭 PVE：</p>
+        <pre><code>poweroff</code></pre>
+        <ol>
+          <li>等待主机完全断电30秒。</li>
+          <li>手动按 GMK003 电源键。</li>
+          <li>不要执行 <code>qm start 103</code>。</li>
+          <li>PVE 等待30秒后应自动启动 VM103。</li>
+          <li>物理显示器进入 Windows 原账户登录界面。</li>
+          <li>检查 GPU、USB、RDP、D盘和 NAS。</li>
+        </ol>
+        <div class="gate">
+          <h3>V1 完成条件</h3>
+          <label class="check"><input type="checkbox">快照列表存在 clean-baseline-v1。</label>
+          <label class="check"><input type="checkbox">NAS 备份任务显示 TASK OK。</label>
+          <label class="check"><input type="checkbox">配置和 VBIOS 四个文件已归档。</label>
+          <label class="check"><input type="checkbox">整机冷启动后原账户登录正常。</label>
+          <label class="check"><input type="checkbox">GPU/USB/RDP/自动启动仍然正常。</label>
+        </div>
+      </section>
+
+      <section id="rollback">
+        <h2>7. 测试失败时回滚 V1</h2>
+        <p>优先在 Windows 中正常关机：</p>
+        <pre><code>shutdown /s /t 0</code></pre>
+        <p>PVE 确认停止并回滚：</p>
+        <pre><code>qm status 103
+qm listsnapshot 103
+qm rollback 103 clean-baseline-v1
+qm status 103</code></pre>
+        <div class="note danger"><strong>回滚会删除快照之后 C、D盘中的改动。</strong>包括新账户、新软件、桌面文件和后来下载到 D 盘的 Ollama 模型。永久文件应放 NAS。</div>
+        <p>回滚后不要立即反复启动 GPU VM，关闭宿主机：</p>
+        <pre><code>poweroff</code></pre>
+        <p>等待30秒后手动开机，让 PVE 自动启动 VM103。这样可以降低 Radeon 8060S reset bug 导致黑屏或 Code 43 的概率。</p>
+      </section>
+
+      <section id="versions">
+        <h2>8. 基线版本命名与升级</h2>
+        <table>
+          <tr><th>版本</th><th>建议状态</th></tr>
+          <tr><td><code>clean-baseline-v1</code></td><td>正常账户登录恢复，GPU/USB/RDP/自动启动稳定</td></tr>
+          <tr><td><code>clean-baseline-v2</code></td><td>I-LAB软件、Ollama路径和标准模型完成</td></tr>
+          <tr><td><code>clean-baseline-v3</code></td><td>登录策略和每日还原机制完成最终验收</td></tr>
+        </table>
+        <p>创建新版本时保留上一版，至少完成一次冷启动和一次手动回滚测试后，才考虑删除更旧快照：</p>
+        <pre><code>qm snapshot 103 clean-baseline-v2 \
+  --description "GMK003 I-LAB software baseline v2 - YYYY-MM-DD"
+
+qm listsnapshot 103</code></pre>
+        <p>删除快照属于不可逆操作，执行前先确认 NAS 中存在对应版本备份：</p>
+        <pre><code>qm delsnapshot 103 clean-baseline-v1</code></pre>
+      </section>
+
+      <section id="portable">
+        <h2>9. 跨节点 Image 的正确边界</h2>
+        <p>VM103 的本地快照只能服务 VM103。GMK004/005 不能直接使用该快照。</p>
+        <table>
+          <tr><th>可以进入通用 Image</th><th>必须逐台重新配置</th></tr>
+          <tr><td>Windows、VirtIO、QEMU-GA、软件、基础策略</td><td>GPU和Audio PCI地址</td></tr>
+          <tr><td>Ollama程序和标准模型</td><td>本机 VBIOS 和 SHA256</td></tr>
+          <tr><td>RDP、NAS脚本、桌面快捷方式</td><td>hostpci、USB、x-vga、vga:none</td></tr>
+          <tr><td>经过 Sysprep 的系统基线</td><td>PVE管理IP、VM ID、MAC、Windows名称和IP</td></tr>
+        </table>
+        <p>后续制作通用 Golden Image 时，应恢复到一个临时 VM，去除节点专属硬件配置，再执行 Sysprep 和 NAS 备份。生产 VM103 保持可运行，不转换为模板。</p>
+      </section>
+
+      <section id="automation">
+        <h2>10. 自动回滚的启用边界</h2>
+        <p>V1 阶段只建立人工恢复点，不立即启用定时回滚。自动回滚应等软件、模型、登录方式和 NAS 持久化全部验收后再配置。</p>
+        <div class="flow">
+          <span>Windows正常关机</span><span>回滚本机基线</span><span>VM保持停止</span><span>PVE关机</span><span>下次冷启动</span>
+        </div>
+        <div class="note warn">不要照搬“回滚后立即 qm start”的普通虚拟机方案。Radeon 8060S 直通节点应通过整机冷启动重新初始化 GPU。</div>
+        <p>多节点最终可通过 Ansible + Cron 错峰执行，但每个 VM 必须拥有自己的基线快照，且脚本中的 VM ID、快照名称和执行时间必须来自节点清单。</p>
+      </section>
+
+      <p class="footer">GMK EVO-X2 · Proxmox VM 基线快照与版本封存指南 · v1.0 · 2026-09-09</p>
+    </main>
+  </div>
+
+  <script>
+    const storageKey = 'pve-snapshot-baseline-checklist-v1';
+    const checks = [...document.querySelectorAll('.check input[type="checkbox"]')];
+
+    function saveChecks() {
+      const state = {};
+      checks.forEach((check, index) => { state[index] = check.checked; });
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    try {
+      const state = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      checks.forEach((check, index) => {
+        check.checked = Boolean(state[index]);
+        check.addEventListener('change', saveChecks);
+      });
+    } catch {
+      checks.forEach(check => check.addEventListener('change', saveChecks));
+    }
+
+    document.querySelectorAll('pre').forEach(pre => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy';
+      button.textContent = '复制';
+      button.setAttribute('aria-label', '复制命令');
+      button.addEventListener('click', async () => {
+        const code = pre.querySelector('code');
+        try {
+          await navigator.clipboard.writeText(code ? code.innerText : pre.innerText);
+          button.textContent = '已复制';
+        } catch {
+          button.textContent = '复制失败';
+        }
+        setTimeout(() => { button.textContent = '复制'; }, 1400);
+      });
+      pre.appendChild(button);
+    });
+  </script>
+</body>
+</html>
