@@ -364,6 +364,81 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v Disa
         <tr><td>系统完整性</td><td>每日自动回滚到基线，无法持久化任何恶意操作</td></tr>
     </table>
 
+    <h3>🛟 关闭错误的自动登录，恢复手动密码登录</h3>
+    <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div>
+            <strong>适用现象：</strong>登录界面自动跳到新的账户名，但密码不正确；或者
+            <code>DefaultUserName</code> 指向了一个并不存在的账户。下列命令是
+            <strong>管理员 PowerShell</strong>，不是 CMD 批处理命令。
+        </div>
+    </div>
+
+    <h4>1. 先进入仍然可用的原账户</h4>
+    <p>在登录界面选择“其他用户”，本地账户使用 <code>.\实际用户名</code>，Microsoft 账户使用完整邮箱和 Microsoft 账户密码，不要使用 Windows Hello PIN。也可以从管理电脑通过 RDP 使用原账户登录。</p>
+    <div class="cmd"><span class="comment"># 进入 Windows 后确认当前账户和本机已有账户</span>
+whoami
+
+Get-LocalUser |
+  Format-Table Name,Enabled,PasswordRequired,PasswordLastSet -AutoSize</div>
+
+    <h4>2. 清除错误的 Winlogon 自动登录信息</h4>
+    <div class="cmd">$Winlogon = <span class="string">"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"</span>
+
+<span class="comment"># 禁用自动登录</span>
+Set-ItemProperty `
+  -Path $Winlogon `
+  -Name AutoAdminLogon `
+  -Value <span class="string">"0"</span>
+
+<span class="comment"># 删除错误用户名、域和可能存在的明文密码</span>
+<span class="string">"DefaultUserName"</span>,
+<span class="string">"DefaultDomainName"</span>,
+<span class="string">"DefaultPassword"</span> |
+  ForEach-Object {
+    Remove-ItemProperty `
+      -Path $Winlogon `
+      -Name $_ `
+      -ErrorAction SilentlyContinue
+  }
+
+<span class="comment"># 恢复 Windows 的默认安全策略：空密码只能用于本机控制台</span>
+New-ItemProperty `
+  -Path <span class="string">"HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"</span> `
+  -Name LimitBlankPasswordUse `
+  -PropertyType DWord `
+  -Value 1 `
+  -Force | Out-Null</div>
+
+    <h4>3. 检查结果</h4>
+    <div class="cmd">Get-ItemProperty $Winlogon |
+  Select-Object AutoAdminLogon,DefaultUserName,DefaultDomainName
+
+Get-ItemProperty `
+  <span class="string">"HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"</span> `
+  -Name LimitBlankPasswordUse</div>
+
+    <p>正确结果应为：</p>
+    <div class="cmd">AutoAdminLogon       : 0
+DefaultUserName      :
+DefaultDomainName    :
+LimitBlankPasswordUse: 1</div>
+
+    <h4>4. 只注销测试，不重启 GPU 直通 VM</h4>
+    <div class="cmd"><span class="comment"># 注销不会触发 Radeon GPU reset</span>
+shutdown /l</div>
+    <p>回到登录界面后，选择“其他用户”，输入 <code>.\实际本地账户名</code>和该账户密码。确认可以登录后，再将 Windows 正常关机，并通过 PVE 宿主机断电 30 秒冷启动完成最终验证。</p>
+
+    <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+            <strong>Proxmox GPU 直通节点：</strong>不要使用 Windows“重新启动”、
+            <code>Restart-Computer</code> 或 <code>qm reboot</code> 验证登录设置。
+            Radeon 8060S 可能无法在 VM 单独重启后正确复位。应先用
+            <code>shutdown /l</code> 验证账户，再用 Windows 正常关机和 PVE 整机冷启动验证。
+        </div>
+    </div>
+
     <h3>⚠️ 故障排除：重启后仍弹出密码/PIN 界面</h3>
     <p>如果执行上述命令后重启仍要求输入密码，通常是 <strong>Windows Hello PIN 优先级高于密码</strong>导致。执行以下命令彻底清除：</p>
 
