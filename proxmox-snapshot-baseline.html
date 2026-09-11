@@ -280,11 +280,12 @@
       <a href="#snapshot">3. 创建 V1 快照</a>
       <a href="#config">4. 保存配置与 VBIOS</a>
       <a href="#backup">5. NAS 镜像备份</a>
-      <a href="#coldboot">6. 冷启动验收</a>
-      <a href="#rollback">7. 快照回滚</a>
-      <a href="#versions">8. 版本管理</a>
-      <a href="#portable">9. 跨节点限制</a>
-      <a href="#automation">10. 自动回滚边界</a>
+      <a href="#coldboot">6. PVE 冷启动验收</a>
+      <a href="#windows-acceptance">7. Windows 验收</a>
+      <a href="#rollback">8. 快照回滚</a>
+      <a href="#versions">9. 版本管理</a>
+      <a href="#portable">10. 跨节点限制</a>
+      <a href="#automation">11. 自动回滚边界</a>
     </aside>
 
     <main>
@@ -294,7 +295,7 @@
         <span class="badge">NAS VZDump</span>
         <h1>先锁定一个可恢复的干净版本</h1>
         <p>适用于已经完成 Radeon 8060S、USB、RDP、本地直显和 PVE 自动启动验证的 Windows VM。当前 VM103 应先保存“正常账户登录已恢复”的 V1，再继续测试无密码登录、软件变更或每日自动回滚。</p>
-        <div class="note good"><strong>VM103 的 V1 定义：</strong>正常账户登录、GPU/USB/RDP/自动启动可用，尚未将新的无密码自动登录写入正式基线。封存日期为 2026-09-09。</div>
+        <div class="note good"><strong>VM103 的 V1 定义：</strong>正常账户登录、GPU/USB/RDP/自动启动可用，尚未将新的无密码自动登录写入正式基线。实际封存日期为 2026-09-11。</div>
       </header>
 
       <section id="layers">
@@ -346,7 +347,7 @@ Get-LocalUser |
 SNAPSHOT="clean-baseline-v1"
 
 qm snapshot "$VM_ID" "$SNAPSHOT" \
-  --description "GMK003 baseline v1 - normal login restored - GPU USB RDP verified - 2026-09-09"
+  --description "GMK003 baseline v1 - normal login garag - GPU USB RDP verified - 2026-09-11"
 
 qm listsnapshot "$VM_ID"</code></pre>
         <p>应看到 <code>clean-baseline-v1</code>。如果名称已经存在，不要覆盖或先删除，改用 <code>clean-baseline-v1a</code>，确认旧版本不再需要后再清理。</p>
@@ -357,7 +358,7 @@ qm listsnapshot "$VM_ID"</code></pre>
         <table>
           <tr><th>字段</th><th>值</th></tr>
           <tr><td>名称</td><td><code>clean-baseline-v1</code></td></tr>
-          <tr><td>描述</td><td><code>GMK003 baseline v1 - normal login restored - 2026-09-09</code></td></tr>
+          <tr><td>描述</td><td><code>GMK003 baseline v1 - normal login garag - GPU USB RDP verified - 2026-09-11</code></td></tr>
           <tr><td>包含 RAM</td><td>不勾选；VM 应处于 stopped</td></tr>
         </table>
       </section>
@@ -367,7 +368,7 @@ qm listsnapshot "$VM_ID"</code></pre>
         <p>快照不能替代外部配置归档。VM103 使用的 <code>romfile</code> 位于宿主机 <code>/usr/share/kvm</code>，需要单独保存。</p>
         <pre><code>VM_ID=103
 NODE="$(hostname)"
-BACKUP_DIR="/root/gmk003-backup/baseline-v1-20260909"
+BACKUP_DIR="/root/gmk003-backup/baseline-v1-20260911"
 CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
 ROM_PATH="/usr/share/kvm/gmk003-vbios-8060s.bin"
 
@@ -399,7 +400,7 @@ gmk003-vbios-8060s.sha256</code></pre>
           <tr><td>存储</td><td><code>nas-pve-backup</code></td></tr>
           <tr><td>模式</td><td><code>Stop</code></td></tr>
           <tr><td>压缩</td><td><code>ZSTD</code></td></tr>
-          <tr><td>备注</td><td><code>GMK003 baseline v1 - normal login restored - 2026-09-09</code></td></tr>
+          <tr><td>备注</td><td><code>GMK003 baseline v1 - normal login garag - 2026-09-11</code></td></tr>
         </table>
         <p>等待任务显示 <code>TASK OK</code>，然后检查：</p>
         <pre><code>pvesm list nas-pve-backup --vmid 103</code></pre>
@@ -407,7 +408,7 @@ gmk003-vbios-8060s.sha256</code></pre>
       </section>
 
       <section id="coldboot">
-        <h2>6. 封存后的冷启动验收</h2>
+        <h2>6. 封存后的 PVE 冷启动验收</h2>
         <p>快照和 NAS 备份都完成后，关闭 PVE：</p>
         <pre><code>poweroff</code></pre>
         <ol>
@@ -416,20 +417,85 @@ gmk003-vbios-8060s.sha256</code></pre>
           <li>不要执行 <code>qm start 103</code>。</li>
           <li>PVE 等待30秒后应自动启动 VM103。</li>
           <li>物理显示器进入 Windows 原账户登录界面。</li>
-          <li>检查 GPU、USB、RDP、D盘和 NAS。</li>
         </ol>
+        <p>从 MIX 登录 PVE Shell 检查：</p>
+        <pre><code>qm status 103
+
+journalctl -u pve-guests -b --no-pager |
+  tail -80</code></pre>
+        <p>应看到以下关键结果：</p>
+        <pre><code>status: running
+Delaying on-boot 'startall' command for 30 second(s)
+Starting VM 103
+VM 103 started
+status=0/SUCCESS</code></pre>
+        <div class="note good"><strong>VM103 实测：</strong>2026-09-11 冷启动日志确认 PVE 等待30秒后启动 VM103，任务状态为 OK，<code>pve-guests.service</code> 正常完成。</div>
+      </section>
+
+      <section id="windows-acceptance">
+        <h2>7. Windows 冷启动后验收</h2>
+        <p>物理显示器出现 Windows 登录界面后，使用 V1 中保留的原账户登录。在 VM103 的管理员 PowerShell 中执行：</p>
+        <pre><code>Write-Host "===== 当前登录身份 =====" -ForegroundColor Cyan
+whoami
+
+Write-Host "`n===== Radeon 8060S =====" -ForegroundColor Cyan
+Get-CimInstance Win32_VideoController |
+  Select-Object Name,DriverVersion,Status
+
+Write-Host "`n===== C/D 卷 =====" -ForegroundColor Cyan
+Get-Volume -DriveLetter C,D |
+  Format-Table DriveLetter,FileSystemLabel,FileSystem,Size,SizeRemaining -AutoSize
+
+Write-Host "`n===== QEMU Guest Agent =====" -ForegroundColor Cyan
+Get-Service QEMU-GA |
+  Format-Table Status,Name,DisplayName -AutoSize
+
+Write-Host "`n===== 网络 =====" -ForegroundColor Cyan
+Get-NetAdapter |
+  Format-Table Name,InterfaceDescription,Status,LinkSpeed -AutoSize
+
+ipconfig</code></pre>
+        <table>
+          <tr><th>检查项</th><th>通过标准</th></tr>
+          <tr><td>登录账户</td><td>原账户可以正常输入密码并进入桌面；V1 实测账户为 <code>GMK-WS-TEMPLATE\garag</code></td></tr>
+          <tr><td>GPU</td><td><code>AMD Radeon(TM) 8060S Graphics</code>，<code>Status = OK</code>，设备管理器无 Code 43</td></tr>
+          <tr><td>C盘</td><td>NTFS、可访问且保留足够系统空间</td></tr>
+          <tr><td>D盘</td><td>卷标 <code>VM103-DATA</code>，容量和可用空间正常</td></tr>
+          <tr><td>Guest Agent</td><td><code>QEMU-GA = Running</code></td></tr>
+          <tr><td>USB</td><td>物理键盘、鼠标均可操作登录界面和桌面</td></tr>
+          <tr><td>网络</td><td>VirtIO网卡为 Up；Windows可以访问网关和NAS</td></tr>
+        </table>
+
+        <h3>从 MIX 验证 RDP</h3>
+        <pre><code>Test-NetConnection 192.168.0.148 -Port 3389
+mstsc /v:192.168.0.148</code></pre>
+        <p><code>TcpTestSucceeded</code> 必须为 <code>True</code>，并且需要实际进入远程桌面，不能只依赖 Ping。</p>
+
+        <h3>验证 NAS</h3>
+        <p>如果已映射NAS盘符，使用实际盘符检查；以下以 <code>Z:</code> 为例：</p>
+        <pre><code>Test-Path Z:\
+Get-PSDrive -PSProvider FileSystem
+
+Get-ChildItem Z:\ |
+  Select-Object -First 10</code></pre>
+        <p>如果尚未映射盘符，至少在文件资源管理器中打开已授权的NAS共享，并确认可以创建、读取和删除一个临时测试文件。</p>
+
         <div class="gate">
           <h3>V1 完成条件</h3>
           <label class="check"><input type="checkbox">快照列表存在 clean-baseline-v1。</label>
           <label class="check"><input type="checkbox">NAS 备份任务显示 TASK OK。</label>
           <label class="check"><input type="checkbox">配置和 VBIOS 四个文件已归档。</label>
+          <label class="check"><input type="checkbox">PVE日志显示等待30秒并自动启动 VM103。</label>
           <label class="check"><input type="checkbox">整机冷启动后原账户登录正常。</label>
-          <label class="check"><input type="checkbox">GPU/USB/RDP/自动启动仍然正常。</label>
+          <label class="check"><input type="checkbox">Radeon 8060S 为 OK且无Code 43。</label>
+          <label class="check"><input type="checkbox">C、D盘、QEMU-GA和VirtIO网络正常。</label>
+          <label class="check"><input type="checkbox">USB、RDP和NAS访问正常。</label>
         </div>
+        <div class="note good"><strong>全部勾选后：</strong>VM103 的 <code>clean-baseline-v1</code> 快照、配置/VBIOS归档、NAS备份、PVE自动启动和Windows冷启动验收才算完整完成。</div>
       </section>
 
       <section id="rollback">
-        <h2>7. 测试失败时回滚 V1</h2>
+        <h2>8. 测试失败时回滚 V1</h2>
         <p>优先在 Windows 中正常关机：</p>
         <pre><code>shutdown /s /t 0</code></pre>
         <p>PVE 确认停止并回滚：</p>
@@ -444,7 +510,7 @@ qm status 103</code></pre>
       </section>
 
       <section id="versions">
-        <h2>8. 基线版本命名与升级</h2>
+        <h2>9. 基线版本命名与升级</h2>
         <table>
           <tr><th>版本</th><th>建议状态</th></tr>
           <tr><td><code>clean-baseline-v1</code></td><td>正常账户登录恢复，GPU/USB/RDP/自动启动稳定</td></tr>
@@ -461,7 +527,7 @@ qm listsnapshot 103</code></pre>
       </section>
 
       <section id="portable">
-        <h2>9. 跨节点 Image 的正确边界</h2>
+        <h2>10. 跨节点 Image 的正确边界</h2>
         <p>VM103 的本地快照只能服务 VM103。GMK004/005 不能直接使用该快照。</p>
         <table>
           <tr><th>可以进入通用 Image</th><th>必须逐台重新配置</th></tr>
@@ -474,7 +540,7 @@ qm listsnapshot 103</code></pre>
       </section>
 
       <section id="automation">
-        <h2>10. 自动回滚的启用边界</h2>
+        <h2>11. 自动回滚的启用边界</h2>
         <p>V1 阶段只建立人工恢复点，不立即启用定时回滚。自动回滚应等软件、模型、登录方式和 NAS 持久化全部验收后再配置。</p>
         <div class="flow">
           <span>Windows正常关机</span><span>回滚本机基线</span><span>VM保持停止</span><span>PVE关机</span><span>下次冷启动</span>
@@ -483,7 +549,7 @@ qm listsnapshot 103</code></pre>
         <p>多节点最终可通过 Ansible + Cron 错峰执行，但每个 VM 必须拥有自己的基线快照，且脚本中的 VM ID、快照名称和执行时间必须来自节点清单。</p>
       </section>
 
-      <p class="footer">GMK EVO-X2 · Proxmox VM 基线快照与版本封存指南 · v1.0 · 2026-09-09</p>
+      <p class="footer">GMK EVO-X2 · Proxmox VM 基线快照与版本封存指南 · v1.1 · 2026-09-11</p>
     </main>
   </div>
 
