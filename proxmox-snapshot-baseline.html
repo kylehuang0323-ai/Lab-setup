@@ -282,10 +282,11 @@
       <a href="#backup">5. NAS 镜像备份</a>
       <a href="#coldboot">6. PVE 冷启动验收</a>
       <a href="#windows-acceptance">7. Windows 验收</a>
-      <a href="#rollback">8. 快照回滚</a>
-      <a href="#versions">9. 版本管理</a>
-      <a href="#portable">10. 跨节点限制</a>
-      <a href="#automation">11. 自动回滚边界</a>
+      <a href="#baseline-v2">8. 创建软件基线 V2</a>
+      <a href="#rollback">9. 快照回滚</a>
+      <a href="#versions">10. 版本管理</a>
+      <a href="#portable">11. 跨节点限制</a>
+      <a href="#automation">12. 自动回滚边界</a>
     </aside>
 
     <main>
@@ -494,14 +495,157 @@ Get-ChildItem Z:\ |
         <div class="note good"><strong>全部勾选后：</strong>VM103 的 <code>clean-baseline-v1</code> 快照、配置/VBIOS归档、NAS备份、PVE自动启动和Windows冷启动验收才算完整完成。</div>
       </section>
 
-      <section id="rollback">
-        <h2>8. 测试失败时回滚 V1</h2>
-        <p>优先在 Windows 中正常关机：</p>
+      <section id="baseline-v2">
+        <h2>8. NAS、软件和 Ollama 完成后创建 V2</h2>
+        <p>V1 验收完成后，可以继续安装 I-LAB 软件、将 Ollama 模型目录设置到 D盘，并在当前 <code>garag</code> 用户中映射 Windows NAS。全部完成后创建 <code>clean-baseline-v2</code>，同时保留 V1。</p>
+        <div class="note good"><strong>VM103 当前 Windows NAS：</strong><code>Z:</code> 映射到 <code>\\Garage-ILAB-NAS\LabData</code>。该盘符属于普通 <code>garag</code> 用户会话；管理员 PowerShell 可能因为 UAC 隔离而看不到映射盘符。</div>
+
+        <h3>8.1 普通 PowerShell 验证用户配置</h3>
+        <p>使用普通 PowerShell，不要选择“以管理员身份运行”：</p>
+        <pre><code>whoami
+
+Get-SmbMapping
+net use
+Test-Path Z:\
+
+Get-ChildItem Z:\ |
+  Select-Object -First 10
+
+[Environment]::GetEnvironmentVariable(
+  "OLLAMA_MODELS",
+  "User"
+)
+
+[Environment]::GetEnvironmentVariable(
+  "OLLAMA_MODELS",
+  "Machine"
+)
+
+ollama list
+Get-ChildItem "D:\AI-Models\Ollama" -Force</code></pre>
+        <p>如果管理员 PowerShell 提示找不到 <code>Z:</code>，直接使用普通 PowerShell或UNC路径：</p>
+        <pre><code>Get-ChildItem "\\Garage-ILAB-NAS\LabData" |
+  Select-Object -First 10</code></pre>
+
+        <h3>8.2 验证 NAS 读写</h3>
+        <p>优先在当前工作站被授权的子目录中测试。以下以 <code>Z:\WS03</code> 为例；如果该目录不存在，替换为实际授权目录：</p>
+        <pre><code>$NasFolder = "Z:\WS03"
+$TestFile = Join-Path $NasFolder "VM103-NAS-Test-20260911.txt"
+
+Test-Path $NasFolder
+
+"VM103 NAS read-write validation" |
+  Set-Content $TestFile
+
+Get-Content $TestFile
+Remove-Item $TestFile
+Test-Path $TestFile</code></pre>
+        <p>最后返回 <code>False</code>，表示测试文件已成功删除。再执行 <code>shutdown /l</code>，重新登录 <code>garag</code> 后确认 <code>Z:</code> 自动恢复。</p>
+
+        <h3>8.3 管理员 PowerShell 验证系统状态</h3>
+        <pre><code>Get-CimInstance Win32_VideoController |
+  Select-Object Name,DriverVersion,Status
+
+Get-Service QEMU-GA |
+  Format-Table Status,Name,DisplayName -AutoSize
+
+Get-Volume -DriveLetter C,D |
+  Format-Table DriveLetter,FileSystemLabel,Size,SizeRemaining -AutoSize
+
+Get-NetAdapter |
+  Format-Table Name,InterfaceDescription,Status,LinkSpeed -AutoSize</code></pre>
+        <div class="gate">
+          <h3>V2 创建门</h3>
+          <label class="check"><input type="checkbox">I-LAB软件均可正常启动。</label>
+          <label class="check"><input type="checkbox">Ollama模型目录位于 D:\AI-Models\Ollama。</label>
+          <label class="check"><input type="checkbox"><code>ollama list</code>显示标准模型。</label>
+          <label class="check"><input type="checkbox">Z: 映射、重新登录恢复和NAS读写均正常。</label>
+          <label class="check"><input type="checkbox">GPU、QEMU-GA、C/D盘、VirtIO网络和RDP正常。</label>
+          <label class="check"><input type="checkbox">没有等待完成的软件安装或Windows Update。</label>
+        </div>
+
+        <h3>8.4 关闭 Windows 并检查 Thin Pool</h3>
         <pre><code>shutdown /s /t 0</code></pre>
-        <p>PVE 确认停止并回滚：</p>
+        <p>在 PVE Shell 中执行：</p>
         <pre><code>qm status 103
 qm listsnapshot 103
+
+pvesm status
+
+lvs -a \
+  -o lv_name,lv_size,data_percent,metadata_percent,pool_lv,origin</code></pre>
+        <p>必须确认 VM103 为 <code>stopped</code>、V1仍存在，并且 <code>local-lvm</code> 的 Data%和Meta%处于安全范围。VM103创建V1后的实测值约为 <code>Data%=7.42</code>、<code>Meta%=0.39</code>。</p>
+
+        <h3>8.5 创建 clean-baseline-v2</h3>
+        <pre><code>qm snapshot 103 clean-baseline-v2 \
+  --description "GMK003 I-LAB software Ollama NAS baseline v2 - 2026-09-11"
+
+qm listsnapshot 103</code></pre>
+        <p>应同时看到：</p>
+        <pre><code>clean-baseline-v1
+clean-baseline-v2</code></pre>
+        <div class="note warn">不要保存RAM状态，不要删除V1，也不要在同一天创建大量临时快照。</div>
+
+        <h3>8.6 归档 V2 配置和 VBIOS</h3>
+        <pre><code>VM_ID=103
+NODE="$(hostname)"
+BACKUP_DIR="/root/gmk003-backup/baseline-v2-20260911"
+CONFIG_PATH="/etc/pve/nodes/${NODE}/qemu-server/${VM_ID}.conf"
+ROM_PATH="/usr/share/kvm/gmk003-vbios-8060s.bin"
+
+mkdir -p "$BACKUP_DIR"
+
+qm config "$VM_ID" &gt; "$BACKUP_DIR/${VM_ID}.conf.txt"
+cp -a "$CONFIG_PATH" "$BACKUP_DIR/${VM_ID}.conf"
+cp -a "$ROM_PATH" "$BACKUP_DIR/"
+
+sha256sum "$BACKUP_DIR/gmk003-vbios-8060s.bin" \
+  &gt; "$BACKUP_DIR/gmk003-vbios-8060s.sha256"
+
+ls -lh "$BACKUP_DIR"</code></pre>
+
+        <h3>8.7 创建 V2 NAS 备份</h3>
+        <div class="flow">
+          <span>VM 103</span><span>备份</span><span>立即备份</span><span>Stop + ZSTD</span>
+        </div>
+        <p>备注填写：</p>
+        <pre><code>GMK003 I-LAB software Ollama NAS baseline v2 - 2026-09-11</code></pre>
+        <p>任务显示 <code>TASK OK</code> 后，避免手工输入错误连字符，自动取得NAS存储ID并检查：</p>
+        <pre><code>NAS_STORAGE="$(
+  pvesm status |
+  awk 'NR &gt; 1 &amp;&amp; $1 ~ /^nas/ {print $1; exit}'
+)"
+
+printf 'NAS storage: &lt;%s&gt;\n' "$NAS_STORAGE"
+pvesm list "$NAS_STORAGE" --vmid 103</code></pre>
+
+        <h3>8.8 V2 冷启动验收</h3>
+        <pre><code>poweroff</code></pre>
+        <p>等待完全断电30秒后手动开机，不执行 <code>qm start 103</code>。确认 PVE 自动启动VM103，并重新检查：</p>
+        <ul>
+          <li>原账户 <code>garag</code> 正常登录。</li>
+          <li>Radeon 8060S 为 OK且无Code 43。</li>
+          <li>USB键鼠、RDP、VirtIO网络、C/D盘正常。</li>
+          <li><code>Z:</code> 在普通用户会话中自动恢复。</li>
+          <li>Ollama模型仍在D盘且可以运行。</li>
+        </ul>
+        <div class="note good"><strong>以上全部通过后：</strong><code>clean-baseline-v2</code> 才成为后续登录策略和每日自动回滚测试的新基线。</div>
+      </section>
+
+      <section id="rollback">
+        <h2>9. 测试失败时回滚基线</h2>
+        <p>优先在 Windows 中正常关机：</p>
+        <pre><code>shutdown /s /t 0</code></pre>
+        <p>PVE确认停止，先列出快照，再选择要回到的V1或V2：</p>
+        <pre><code>qm status 103
+qm listsnapshot 103
+
+<span class="comment"># 回到登录/GPU稳定的V1</span>
 qm rollback 103 clean-baseline-v1
+
+<span class="comment"># 或回到软件/Ollama/NAS完成的V2</span>
+<span class="comment"># qm rollback 103 clean-baseline-v2</span>
+
 qm status 103</code></pre>
         <div class="note danger"><strong>回滚会删除快照之后 C、D盘中的改动。</strong>包括新账户、新软件、桌面文件和后来下载到 D 盘的 Ollama 模型。永久文件应放 NAS。</div>
         <p>回滚后不要立即反复启动 GPU VM，关闭宿主机：</p>
@@ -510,7 +654,7 @@ qm status 103</code></pre>
       </section>
 
       <section id="versions">
-        <h2>9. 基线版本命名与升级</h2>
+        <h2>10. 基线版本命名与升级</h2>
         <table>
           <tr><th>版本</th><th>建议状态</th></tr>
           <tr><td><code>clean-baseline-v1</code></td><td>正常账户登录恢复，GPU/USB/RDP/自动启动稳定</td></tr>
@@ -527,7 +671,7 @@ qm listsnapshot 103</code></pre>
       </section>
 
       <section id="portable">
-        <h2>10. 跨节点 Image 的正确边界</h2>
+        <h2>11. 跨节点 Image 的正确边界</h2>
         <p>VM103 的本地快照只能服务 VM103。GMK004/005 不能直接使用该快照。</p>
         <table>
           <tr><th>可以进入通用 Image</th><th>必须逐台重新配置</th></tr>
@@ -540,7 +684,7 @@ qm listsnapshot 103</code></pre>
       </section>
 
       <section id="automation">
-        <h2>11. 自动回滚的启用边界</h2>
+        <h2>12. 自动回滚的启用边界</h2>
         <p>V1 阶段只建立人工恢复点，不立即启用定时回滚。自动回滚应等软件、模型、登录方式和 NAS 持久化全部验收后再配置。</p>
         <div class="flow">
           <span>Windows正常关机</span><span>回滚本机基线</span><span>VM保持停止</span><span>PVE关机</span><span>下次冷启动</span>
@@ -549,7 +693,7 @@ qm listsnapshot 103</code></pre>
         <p>多节点最终可通过 Ansible + Cron 错峰执行，但每个 VM 必须拥有自己的基线快照，且脚本中的 VM ID、快照名称和执行时间必须来自节点清单。</p>
       </section>
 
-      <p class="footer">GMK EVO-X2 · Proxmox VM 基线快照与版本封存指南 · v1.1 · 2026-09-11</p>
+      <p class="footer">GMK EVO-X2 · Proxmox VM 基线快照与版本封存指南 · v1.2 · 2026-09-11</p>
     </main>
   </div>
 
